@@ -1,0 +1,24 @@
+cmake_minimum_required (VERSION 2.8)
+
+set(CMAKE_CXX_COMPILER g++)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_MODULE_PATH ..)
+
+find_package(GSL REQUIRED)
+message("GSL include dir:" ${GSL_INCLUDE_DIR})
+message("GSL libraries:" ${GSL_LIBRARIES})
+
+include_directories(
+    ${GSL_INCLUDE_DIR}
+    . .. ../src
+    )
+    
+add_executable(test basic_test.cpp sput.h)
+    
+target_link_libraries(test samplinglibrary ${GSL_LIBRARIES})
+
+install(TARGETS test RUNTIME DESTINATION bin)
+

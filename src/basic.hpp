@@ -20,7 +20,6 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_ieee_utils.h>
 #include <time.h>
-#include "sput.h"
 
 //basic parameters and constants
 #define PI 3.14159265358979323846264
@@ -35,6 +34,7 @@
 //convenience functions
 double get_option(int inputN,char *inputV[],char *was);		//Passing options when starting program, e.g. as ./polaron -option1 5.0 -option2 1.0 ...
 bool acceptreject(double probability, gsl_rng* RNG);		//whether to accept or reject update according to probability
+static void test_isAround();
 bool isAround(double whatWeHave, double whatItShouldBe);
 int whatsign(double a);
 int rounding(double a);						//Only works for positive numbers!!!

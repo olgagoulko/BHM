@@ -3,7 +3,8 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-    cout << "Hello, world!" << std::endl;
+
+    cout << "Hello, world!" << endl;
     
     //Random Number generator
     long unsigned int seed=rdtsc();
@@ -13,4 +14,5 @@ int main(int argc, char **argv) {
     cout << "My random number is: " << randy << endl;
     
     return 0;
+    
 }

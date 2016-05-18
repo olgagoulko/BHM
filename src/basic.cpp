@@ -33,7 +33,8 @@ return accept;
 bool isAround(double whatWeHave, double whatItShouldBe)
 {
 bool result=false;
-if(abs(whatItShouldBe-whatWeHave)/whatItShouldBe<=VERY_SMALL_NUMBER) result=true;
+if((whatItShouldBe==0)&&(abs(whatWeHave)<VERY_SMALL_NUMBER)) result=true;
+else if(abs((whatItShouldBe-whatWeHave)/whatItShouldBe)<=VERY_SMALL_NUMBER) result=true;
 return result;
 }
 
@@ -51,7 +52,10 @@ return s;
 /*--------------------------------------------------------  Rounding  -----------------------------------------------------------*/
 
 int rounding(double a) {
-return int(a + 0.5);
+int rounded=0;
+if(a>=0) rounded=int(a + 0.5);
+else rounded=-int(-a + 0.5);
+return rounded;
 }
 
 /*------------------------------------------------------  RNG seed  -------------------------------------------------------------*/
