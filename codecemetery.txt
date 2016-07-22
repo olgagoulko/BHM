@@ -1,0 +1,93 @@
+//---------- Legendre coefficients -> Gram Schmidt coefficients code --------------//
+
+	//regular legendre integer coeffs without norm and multiplied by 2^n to make them integer
+	vector< vector<long> >LegendreIntegerCoefficients;
+	vector<long> element; element.push_back(1);
+	LegendreIntegerCoefficients.push_back(element);
+	element[0]=0; element.push_back(2); LegendreIntegerCoefficients.push_back(element);
+	for(int i=2; i<totalNumOfBasisFn; i++)
+		{
+		vector<long> thevec; thevec.resize(i+1);
+		for(int j=0; j<=i; j++)
+			{
+			thevec[j]=0;
+			if(j<=i-2) thevec[j]+=-4*(i-1)*LegendreIntegerCoefficients[i-2][j];
+			if(j>0) thevec[j]+=2*(2*i-1)*LegendreIntegerCoefficients[i-1][j-1];
+			thevec[j]=thevec[j]/i;
+			}
+		LegendreIntegerCoefficients.push_back(thevec);
+		}
+		
+	//shift these coefficients and remove 2^n factor
+	double var1=2./bounds.slotWidth(); double var2=-(bounds.getLowerBound()+bounds.getUpperBound())/bounds.slotWidth(); long aux;
+	for(int i=0; i<totalNumOfBasisFn; i++)
+		{
+		for(int p=0; p<=i; p++)
+			{
+			double sum=0; long currentBinomial=1;
+			for(int j=p; j<=i; j++)
+				{
+				aux=currentBinomial*LegendreIntegerCoefficients[i][j];
+				sum+=aux*pow(var2,j-p)*pow(var1,p);
+				currentBinomial*=j+1; currentBinomial=currentBinomial/(j-p+1);
+				}
+			GramSchmidtCoeffs[i][p]=sum;
+			}
+		}
+
+	//normalise properly
+	double width=bounds.slotWidth();
+	for(int i=0; i<totalNumOfBasisFn; i++) for(int j=0; j<=i; j++) GramSchmidtCoeffs[i][j]*=sqrt(2*i+1)/pow(sqrt(width),2*i+1)/pow(2,i); 
+	
+	//--------- Gram-Schmidt implementation for Taylor -------//
+	
+	void taylorSlot::initializeGramSchmidt()
+	{
+		//recursive legendre
+		double sumbounds=bounds.getLowerBound()+bounds.getUpperBound(); double coeff1, coeff2, coeff3;
+		for(int i=1; i<totalNumOfBasisFn; i++)
+		{
+			for(int j=0; j<=i; j++)
+			{
+				if(j>0) coeff1=2*GramSchmidtCoeffs[i-1][j-1];
+				else coeff1=0;
+				coeff2=sumbounds*GramSchmidtCoeffs[i-1][j];
+				if(i>1) coeff3=GramSchmidtCoeffs[i-2][j]*(i-1);
+				else coeff3=0;
+				GramSchmidtCoeffs[i][j]= ( (2*i-1)*( coeff1 - coeff2 ) - coeff3 ) /double(i);
+			}
+		}
+		
+		double width=bounds.slotWidth();
+		for(int i=0; i<totalNumOfBasisFn; i++) for(int j=0; j<=i; j++) GramSchmidtCoeffs[i][j]*=sqrt(2*i+1)/pow(sqrt(width),2*i+1);
+		
+	}
+
+//--------- alternative Gram-Schmidt implementation -------//
+	
+		for(int i=0; i<totalNumOfBasisFn; i++)
+		{
+		double newnorm;
+		for(int k=0; k<i; k++)
+			{
+			newnorm=0;
+			for(int j1=0; j1<=i; j1++)
+			    for(int j2=0; j2<=k; j2++)
+				{
+				newnorm+=GramSchmidtCoeffs[i][j1]*GramSchmidtCoeffs[k][j2]*pairwiseIntegral(j1,j2);
+				}
+			for(int j2=0; j2<=k; j2++) GramSchmidtCoeffs[i][j2]-=newnorm*GramSchmidtCoeffs[k][j2];
+			}
+			//can repeat this loop, but didn't improve things for me
+		
+		newnorm=0;
+		for(int j1=0; j1<=i; j1++)
+		    for(int j2=0; j2<=i; j2++)
+			{
+			newnorm+=GramSchmidtCoeffs[i][j1]*GramSchmidtCoeffs[i][j2]*pairwiseIntegral(j1,j2);
+			}
+		if(newnorm<=0) {cout << "ERROR: negative norm in Gram-Schmidt initialization in function number " << i << endl; printSlotInfo(); exit(EXIT_FAILURE);}
+		newnorm=sqrt(newnorm);
+
+		for(int j1=0; j1<=i; j1++) GramSchmidtCoeffs[i][j1]=GramSchmidtCoeffs[i][j1]/newnorm;
+		}

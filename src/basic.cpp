@@ -22,7 +22,9 @@ bool acceptreject(double probability, gsl_rng* RNG){
 
 bool accept=false;
 double random = gsl_rng_uniform(RNG);
-if(random<abs(probability)) accept=true;
+if(probability<0) {cout << "ERROR: negative probability in acceptreject" << endl; exit(EXIT_FAILURE);}
+
+if(random<probability) accept=true;
 
 return accept;
 
@@ -33,8 +35,8 @@ return accept;
 bool isAround(double whatWeHave, double whatItShouldBe)
 {
 bool result=false;
-if((whatItShouldBe==0)&&(abs(whatWeHave)<VERY_SMALL_NUMBER)) result=true;
-else if(abs((whatItShouldBe-whatWeHave)/whatItShouldBe)<=VERY_SMALL_NUMBER) result=true;
+if((whatItShouldBe==0)&&(abs(whatWeHave)<ACCURACY)) result=true;
+else if(abs((whatItShouldBe-whatWeHave)/whatItShouldBe)<=ACCURACY) result=true;
 return result;
 }
 

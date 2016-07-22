@@ -1,0 +1,1 @@
+g++   -g -Wall    CMakeFiles/test.dir/slot_test.cpp.o  -o test -rdynamic ../src/libsamplinglibrary.a -L/usr/local/lib -lgsl -lgslcblas -lm 

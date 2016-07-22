@@ -1,0 +1,81 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x03\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x10\x00s\x00a\x00m\x00p\x00l\x00i\x00n\x00g\x00\x00\x00\x0b\x00\x00\x00\x00\x03\x00\x00\x00\x10\x00s\x00a\x00m\x00p\x00l\x00i\x00n\x00g\x00\x00\x00\x06\x00s\x00r\x00c\x00\x00\x00\x10\x00s\x00a\x00m\x00p\x00l\x00i\x00n\x00g\x00\x00\x00\x0b\x00\x00\x00\x00\x03\x00\x00\x00\x10\x00s\x00a\x00m\x00p\x00l\x00i\x00n\x00g\x00\x00\x00\n\x00t\x00e\x00s\x00t\x00s\x00\x00\x00\x08\x00t\x00e\x00s\x00t)
+
+[CMake]
+Build Directory Count=1
+Current Build Directory Index=0
+ProjectRootRelative=./
+
+[CMake][CMake Build Directory 0]
+Build Directory Path=file:///home/olga/Documents/sampling/build
+Build Type=Debug
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///usr/local
+
+[Launch]
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=main
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Install
+EnvironmentGroup=default
+Executable=file:///home/olga/Documents/sampling/build/src/main
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=sampling,src,sampling
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Launch][Launch Configuration 1]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=test
+Type=Native Application
+
+[Launch][Launch Configuration 1][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Install
+EnvironmentGroup=default
+Executable=file:///home/olga/Documents/sampling/build/tests/test
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=sampling,tests,test
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Launch][Launch Configuration 2]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=test
+Type=Native Application
+
+[Launch][Launch Configuration 2][Data]
+Configured from ProjectItem=sampling,tests,test
+Project Target=sampling,tests,test
+Working Directory=file:///home/olga/Documents/sampling/build/tests/
+isExecutable=false
+
+[Launch][Launch Configuration 3]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=main
+Type=Native Application
+
+[Launch][Launch Configuration 3][Data]
+Configured from ProjectItem=sampling,src,main
+Project Target=sampling,src,main
+Working Directory=file:///home/olga/Documents/sampling/build/src/
+isExecutable=false
+
+[Project]
+VersionControlSupport=kdevgit
