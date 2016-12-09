@@ -34,6 +34,8 @@ public:
 	slotBounds(double theLowerBound = 0.);
 	slotBounds(double theLowerBound, double theUpperBound);
 	
+	bool operator==(const slotBounds& other) const { return ((lowerBound==other.lowerBound) && (noUpperBound==other.noUpperBound) && ( (upperBound==other.upperBound)||!noUpperBound) ); }
+	
 	double getLowerBound() const {return lowerBound;}
 	double getUpperBound() const {return upperBound;}
 	bool getIsInfinite() const {return noUpperBound;}
@@ -53,13 +55,15 @@ protected:
 	int totalNumOfBasisFn;
 	
 	std::vector< std::vector<double> >GramSchmidtCoeffs;
-	std::vector<double>sampledCoeffs;
+	std::vector<double>sampledCoeffsValues;
+	std::vector<double>sampledCoeffsVariance;
+	long numberTimesSampled;
 	
 public:
 	
 	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 1);
 	
-	void initializeGramSchmidt();
+	virtual void initializeGramSchmidt();
 	
 	virtual double GramSchmidtBasisFn(int numOfBasisFn, double variable) const {return 1.;}
 	virtual double bareBasisFn(int numOfBasisFn, double variable) const {return 1.;};
@@ -69,16 +73,18 @@ public:
 	
 	void sample(double variable, double valueToSample);
 	bool addAnotherSlot(basisSlot* anotherSlot);
-	bool subtractAnotherSlot(basisSlot* anotherSlot);
 	void scale(double norm);
 	
-	double sampledFunctionValue(double variable) const;    
+	long getNumberTimesSampled() const {return numberTimesSampled;}
+	double sampledFunctionValue(double variable) const;
+	double sampledFunctionVariance(double variable) const;
+	double sampledFunctionError(double variable) const;
 	std::vector<double> bareBasisSampledCoeffs() const;
 	
 	void printSlotInfo() const;
 	void printGramSchmidtCoeffs() const;
 	void printSampledCoeffs() const;
-	virtual void printSampledFunction(double norm) const {std::cout << std::fixed << std::setprecision(8) << sampledCoeffs[0]/norm;}
+	virtual void printSampledFunction(double norm) const {std::cout << std::fixed << std::setprecision(8) << sampledCoeffsValues[0]/norm;}
 	virtual void printBoundaries() const {std::cout << std::endl;}
 	
 }; 
@@ -90,6 +96,8 @@ private:
 public:
 	
 	taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn);
+	
+	void initializeGramSchmidt();
 	
 	double GramSchmidtBasisFn(int numOfBasisFn, double variable) const;
 	double bareBasisFn(int numOfBasisFn, double variable) const;

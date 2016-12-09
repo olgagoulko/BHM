@@ -49,37 +49,37 @@ include tests/CMakeFiles/test.dir/progress.make
 # Include the compile flags for this target's objects.
 include tests/CMakeFiles/test.dir/flags.make
 
-tests/CMakeFiles/test.dir/slot_test.cpp.o: tests/CMakeFiles/test.dir/flags.make
-tests/CMakeFiles/test.dir/slot_test.cpp.o: ../tests/slot_test.cpp
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.o: tests/CMakeFiles/test.dir/flags.make
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.o: ../tests/histogram_unittest.cpp
 	$(CMAKE_COMMAND) -E cmake_progress_report /home/olga/Documents/sampling/build/CMakeFiles $(CMAKE_PROGRESS_1)
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object tests/CMakeFiles/test.dir/slot_test.cpp.o"
-	cd /home/olga/Documents/sampling/build/tests && g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/test.dir/slot_test.cpp.o -c /home/olga/Documents/sampling/tests/slot_test.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object tests/CMakeFiles/test.dir/histogram_unittest.cpp.o"
+	cd /home/olga/Documents/sampling/build/tests && g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/test.dir/histogram_unittest.cpp.o -c /home/olga/Documents/sampling/tests/histogram_unittest.cpp
 
-tests/CMakeFiles/test.dir/slot_test.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/slot_test.cpp.i"
-	cd /home/olga/Documents/sampling/build/tests && g++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/olga/Documents/sampling/tests/slot_test.cpp > CMakeFiles/test.dir/slot_test.cpp.i
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/histogram_unittest.cpp.i"
+	cd /home/olga/Documents/sampling/build/tests && g++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/olga/Documents/sampling/tests/histogram_unittest.cpp > CMakeFiles/test.dir/histogram_unittest.cpp.i
 
-tests/CMakeFiles/test.dir/slot_test.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/slot_test.cpp.s"
-	cd /home/olga/Documents/sampling/build/tests && g++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/olga/Documents/sampling/tests/slot_test.cpp -o CMakeFiles/test.dir/slot_test.cpp.s
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/histogram_unittest.cpp.s"
+	cd /home/olga/Documents/sampling/build/tests && g++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/olga/Documents/sampling/tests/histogram_unittest.cpp -o CMakeFiles/test.dir/histogram_unittest.cpp.s
 
-tests/CMakeFiles/test.dir/slot_test.cpp.o.requires:
-.PHONY : tests/CMakeFiles/test.dir/slot_test.cpp.o.requires
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.requires:
+.PHONY : tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.requires
 
-tests/CMakeFiles/test.dir/slot_test.cpp.o.provides: tests/CMakeFiles/test.dir/slot_test.cpp.o.requires
-	$(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/slot_test.cpp.o.provides.build
-.PHONY : tests/CMakeFiles/test.dir/slot_test.cpp.o.provides
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.provides: tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.requires
+	$(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.provides.build
+.PHONY : tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.provides
 
-tests/CMakeFiles/test.dir/slot_test.cpp.o.provides.build: tests/CMakeFiles/test.dir/slot_test.cpp.o
+tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.provides.build: tests/CMakeFiles/test.dir/histogram_unittest.cpp.o
 
 # Object files for target test
 test_OBJECTS = \
-"CMakeFiles/test.dir/slot_test.cpp.o"
+"CMakeFiles/test.dir/histogram_unittest.cpp.o"
 
 # External object files for target test
 test_EXTERNAL_OBJECTS =
 
-tests/test: tests/CMakeFiles/test.dir/slot_test.cpp.o
+tests/test: tests/CMakeFiles/test.dir/histogram_unittest.cpp.o
 tests/test: tests/CMakeFiles/test.dir/build.make
 tests/test: src/libsamplinglibrary.a
 tests/test: tests/CMakeFiles/test.dir/link.txt
@@ -90,7 +90,7 @@ tests/test: tests/CMakeFiles/test.dir/link.txt
 tests/CMakeFiles/test.dir/build: tests/test
 .PHONY : tests/CMakeFiles/test.dir/build
 
-tests/CMakeFiles/test.dir/requires: tests/CMakeFiles/test.dir/slot_test.cpp.o.requires
+tests/CMakeFiles/test.dir/requires: tests/CMakeFiles/test.dir/histogram_unittest.cpp.o.requires
 .PHONY : tests/CMakeFiles/test.dir/requires
 
 tests/CMakeFiles/test.dir/clean:

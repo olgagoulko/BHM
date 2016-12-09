@@ -17,14 +17,15 @@ public:
 	
 	histogramBasis(std::vector<basisSlot*> theBasisSlots);
 	
-	//void appendSlot(basisSlot* theSlot);
+	void appendSlot(basisSlot* theSlot);
 	
 	void sample(double variable, double valueToSample);
-	double sampledFunctionValueAverage(double variable);
+	std::pair<double,double> sampledFunctionValueAverage(double variable);
+	std::pair<double,double> sampledFunctionValueWeightedAverage(double variable);
 	
 	//void addAnotherHistogram(histogramBasis anotherHistogram);
 	//void subtractAnotherHistogram(histogramBasis anotherHistogram);
-	//void scale(double norm);
+	void scale(double norm);
 };
 
 

@@ -16,7 +16,7 @@ include_directories(
     . ..
     )
     
-add_library (samplinglibrary basic.cpp slot.cpp histogram.cpp histogram.hpp slot.hpp basic.hpp)
+add_library (samplinglibrary basic.cpp matrix.cpp slot.cpp histogram.cpp histogram.hpp slot.hpp matrix.hpp basic.hpp)
 add_executable(main main.cpp)
     
 target_link_libraries(main samplinglibrary ${GSL_LIBRARIES})

@@ -6,6 +6,7 @@ SET(CMAKE_DEPENDS_LANGUAGES
 SET(CMAKE_DEPENDS_CHECK_CXX
   "/home/olga/Documents/sampling/src/basic.cpp" "/home/olga/Documents/sampling/build/src/CMakeFiles/samplinglibrary.dir/basic.cpp.o"
   "/home/olga/Documents/sampling/src/histogram.cpp" "/home/olga/Documents/sampling/build/src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o"
+  "/home/olga/Documents/sampling/src/matrix.cpp" "/home/olga/Documents/sampling/build/src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o"
   "/home/olga/Documents/sampling/src/slot.cpp" "/home/olga/Documents/sampling/build/src/CMakeFiles/samplinglibrary.dir/slot.cpp.o"
   )
 SET(CMAKE_CXX_COMPILER_ID "GNU")

@@ -21,6 +21,11 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 	vector<basisSlot*> basisSlotVector;
 	
 	int counter=0;
+	for(int i=1;i<numberOverlaps;i++)
+		{
+		slotBounds currentBounds(minVar, minVar+i*offset);
+		basisSlotVector.push_back(new taylorSlot(currentBounds, totalNumOfBasisFn));
+		}
 	while(minVar+(counter*offset)+slotWidth<maxVar)
 		{
 		slotBounds currentBounds(minVar+(counter*offset), minVar+(counter*offset)+slotWidth);
@@ -28,8 +33,22 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 		counter++;
 		if((minVar+(counter*offset)+slotWidth>=maxVar)&&(minVar+(counter*offset)<maxVar)) 
 			{
-			slotBounds finalBounds(minVar+(counter*offset), maxVar);
-			basisSlotVector.push_back(new taylorSlot(finalBounds, totalNumOfBasisFn));
+			if(numberOverlaps<2)
+				{
+				slotBounds finalBounds(minVar+counter*offset, maxVar);
+				basisSlotVector.push_back(new taylorSlot(finalBounds, totalNumOfBasisFn));
+				}
+			else
+				{
+				for(int i=0;i<numberOverlaps-1;i++)
+					{
+					if(minVar+(counter+i)*offset<maxVar)
+						{
+						slotBounds finalBounds(minVar+(counter+i)*offset, maxVar);
+						basisSlotVector.push_back(new taylorSlot(finalBounds, totalNumOfBasisFn));
+						}
+					}
+				}
 			}
 		}
 	
@@ -41,35 +60,102 @@ histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots)
 {
 	
 	valuesOutsideBounds = new excessBin();
-	for(int i=0;i<theBasisSlots.size();i++) basisSlots.push_back(theBasisSlots[i]);
+	for(unsigned int i=0;i<theBasisSlots.size();i++) basisSlots.push_back(theBasisSlots[i]);
 	
 }
+
+void histogramBasis::appendSlot(basisSlot* theSlot)
+{
+	basisSlots.push_back(theSlot);
+}
+
 
 void histogramBasis::sample(double variable, double valueToSample)
 {
 	bool isOutsideBounds=true;
-	for(int i=0;i<basisSlots.size();i++)
+	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
 		if( basisSlots[i] -> checkIfInBasisSlot(variable) ) {basisSlots[i] -> sample(variable,valueToSample); isOutsideBounds=false;}
 		}
 	if(isOutsideBounds) valuesOutsideBounds -> sample(variable, valueToSample);
 }
 
-double histogramBasis::sampledFunctionValueAverage(double variable)
+pair<double,double> histogramBasis::sampledFunctionValueAverage(double variable)
 {
-	double sampledValue=0;
+	vector<double> sampledValue;
 	int numberSlots=0;
-	for(int i=0;i<basisSlots.size();i++)
+	double average=0;
+	double error=0;
+	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
-		if( basisSlots[i] -> checkIfInBasisSlot(variable) ) {sampledValue += basisSlots[i] -> sampledFunctionValue(variable); numberSlots++;}
+		if( basisSlots[i] -> checkIfInBasisSlot(variable) ) 
+			{
+			sampledValue.push_back(basisSlots[i] -> sampledFunctionValue(variable));
+			average+=sampledValue[numberSlots];
+			numberSlots++;
+			}
 		}
 	
-	if(numberSlots==0) sampledValue=valuesOutsideBounds -> getExcessValues();
-	else sampledValue=sampledValue/double(numberSlots);
-	
-	return sampledValue;
+	if(numberSlots==0) average=valuesOutsideBounds -> getExcessValues();
+	else if(numberSlots>1)
+		{
+		average=average/double(numberSlots);
+		double roundofferror=0;
+		double delta;
+		for(int i=0;i<numberSlots;i++)
+			{
+			delta=sampledValue[i]-average;
+			error+=delta*delta;
+			roundofferror+=delta;
+			}
+		roundofferror=roundofferror*roundofferror/double(numberSlots);
+		error=error-roundofferror;
+		if(error<0) error=0;
+		error=sqrt(error/double(numberSlots*(numberSlots-1)));
+		}
+		
+	pair<double,double> thisPair(average,error);
+	return thisPair;
 }
 
+pair<double,double> histogramBasis::sampledFunctionValueWeightedAverage(double variable)
+{
+	double sampledValue=0; double value;
+	double sumVariance=0; double variance;
+	double error;
+	int numberSlots=0;
+	for(unsigned int i=0;i<basisSlots.size();i++)
+	{
+		if( basisSlots[i] -> checkIfInBasisSlot(variable) )
+			{
+			value = basisSlots[i] -> sampledFunctionValue(variable);
+			variance = basisSlots[i] -> sampledFunctionError(variable);
+			if(variance>0)
+				{
+				variance=variance*variance;
+				sumVariance+=1./variance;
+				sampledValue += value/variance;
+				}
+			numberSlots++;
+			}
+	}
+	
+	if(numberSlots==0) sampledValue=valuesOutsideBounds -> getExcessValues();
+	else if(sumVariance==0) {error=0;}
+	else {sampledValue=sampledValue/sumVariance; error=sqrt(1./sumVariance);}
+	
+	pair<double,double> result(sampledValue,error);
+	
+	return result;
+}
+
+void histogramBasis::scale(double norm)
+{
+	for(unsigned int i=0;i<basisSlots.size();i++)
+	{
+		basisSlots[i] -> scale(norm);
+	}
+}
 
 
 

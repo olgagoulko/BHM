@@ -72,9 +72,32 @@ src/CMakeFiles/samplinglibrary.dir/basic.cpp.o.provides: src/CMakeFiles/sampling
 
 src/CMakeFiles/samplinglibrary.dir/basic.cpp.o.provides.build: src/CMakeFiles/samplinglibrary.dir/basic.cpp.o
 
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o: src/CMakeFiles/samplinglibrary.dir/flags.make
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o: ../src/matrix.cpp
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/olga/Documents/sampling/build/CMakeFiles $(CMAKE_PROGRESS_2)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o"
+	cd /home/olga/Documents/sampling/build/src && g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/samplinglibrary.dir/matrix.cpp.o -c /home/olga/Documents/sampling/src/matrix.cpp
+
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/samplinglibrary.dir/matrix.cpp.i"
+	cd /home/olga/Documents/sampling/build/src && g++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/olga/Documents/sampling/src/matrix.cpp > CMakeFiles/samplinglibrary.dir/matrix.cpp.i
+
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/samplinglibrary.dir/matrix.cpp.s"
+	cd /home/olga/Documents/sampling/build/src && g++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/olga/Documents/sampling/src/matrix.cpp -o CMakeFiles/samplinglibrary.dir/matrix.cpp.s
+
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.requires:
+.PHONY : src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.requires
+
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.provides: src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.requires
+	$(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.provides.build
+.PHONY : src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.provides
+
+src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.provides.build: src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o
+
 src/CMakeFiles/samplinglibrary.dir/slot.cpp.o: src/CMakeFiles/samplinglibrary.dir/flags.make
 src/CMakeFiles/samplinglibrary.dir/slot.cpp.o: ../src/slot.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/olga/Documents/sampling/build/CMakeFiles $(CMAKE_PROGRESS_2)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/olga/Documents/sampling/build/CMakeFiles $(CMAKE_PROGRESS_3)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object src/CMakeFiles/samplinglibrary.dir/slot.cpp.o"
 	cd /home/olga/Documents/sampling/build/src && g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/samplinglibrary.dir/slot.cpp.o -c /home/olga/Documents/sampling/src/slot.cpp
 
@@ -97,7 +120,7 @@ src/CMakeFiles/samplinglibrary.dir/slot.cpp.o.provides.build: src/CMakeFiles/sam
 
 src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o: src/CMakeFiles/samplinglibrary.dir/flags.make
 src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o: ../src/histogram.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/olga/Documents/sampling/build/CMakeFiles $(CMAKE_PROGRESS_3)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/olga/Documents/sampling/build/CMakeFiles $(CMAKE_PROGRESS_4)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o"
 	cd /home/olga/Documents/sampling/build/src && g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/samplinglibrary.dir/histogram.cpp.o -c /home/olga/Documents/sampling/src/histogram.cpp
 
@@ -121,6 +144,7 @@ src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o.provides.build: src/CMakeFile
 # Object files for target samplinglibrary
 samplinglibrary_OBJECTS = \
 "CMakeFiles/samplinglibrary.dir/basic.cpp.o" \
+"CMakeFiles/samplinglibrary.dir/matrix.cpp.o" \
 "CMakeFiles/samplinglibrary.dir/slot.cpp.o" \
 "CMakeFiles/samplinglibrary.dir/histogram.cpp.o"
 
@@ -128,6 +152,7 @@ samplinglibrary_OBJECTS = \
 samplinglibrary_EXTERNAL_OBJECTS =
 
 src/libsamplinglibrary.a: src/CMakeFiles/samplinglibrary.dir/basic.cpp.o
+src/libsamplinglibrary.a: src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o
 src/libsamplinglibrary.a: src/CMakeFiles/samplinglibrary.dir/slot.cpp.o
 src/libsamplinglibrary.a: src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o
 src/libsamplinglibrary.a: src/CMakeFiles/samplinglibrary.dir/build.make
@@ -141,6 +166,7 @@ src/CMakeFiles/samplinglibrary.dir/build: src/libsamplinglibrary.a
 .PHONY : src/CMakeFiles/samplinglibrary.dir/build
 
 src/CMakeFiles/samplinglibrary.dir/requires: src/CMakeFiles/samplinglibrary.dir/basic.cpp.o.requires
+src/CMakeFiles/samplinglibrary.dir/requires: src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o.requires
 src/CMakeFiles/samplinglibrary.dir/requires: src/CMakeFiles/samplinglibrary.dir/slot.cpp.o.requires
 src/CMakeFiles/samplinglibrary.dir/requires: src/CMakeFiles/samplinglibrary.dir/histogram.cpp.o.requires
 .PHONY : src/CMakeFiles/samplinglibrary.dir/requires

@@ -35,7 +35,7 @@ slotBounds::slotBounds(double theLowerBound, double theUpperBound)
 bool slotBounds::checkIfInBounds(double valueToCheck) const
 {
     bool isInBounds=true;
-    if(valueToCheck<lowerBound) isInBounds=false;
+    if(valueToCheck<lowerBound-VERY_SMALL_NUMBER) isInBounds=false;
     else if(noUpperBound==false) {
         if(valueToCheck>=upperBound) isInBounds=false;
     }
@@ -67,9 +67,11 @@ basisSlot::basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn)
     totalNumOfBasisFn=1;
     if(theTotalNumOfBasisFn>1) totalNumOfBasisFn=theTotalNumOfBasisFn;
     GramSchmidtCoeffs.resize(totalNumOfBasisFn);
+    numberTimesSampled=0;
     for(int i=0; i<totalNumOfBasisFn; i++)
     {
-        sampledCoeffs.push_back(0);
+        sampledCoeffsValues.push_back(0);
+	sampledCoeffsVariance.push_back(0);
         for(int j=0; j<totalNumOfBasisFn; j++)
         {
             if (i == j) GramSchmidtCoeffs[i].push_back(1.);
@@ -115,9 +117,14 @@ void basisSlot::sample(double variable, double valueToSample)
 {
     if(this -> checkIfInBasisSlot(variable))
     {
-        for(int j=0; j<totalNumOfBasisFn; j++)
+    numberTimesSampled++;
+    double samplingTotal; double delta;    
+    for(int j=0; j<totalNumOfBasisFn; j++)
         {
-            sampledCoeffs[j]+=weight(variable)*valueToSample*GramSchmidtBasisFn(j, variable);
+		samplingTotal=weight(variable)*valueToSample*GramSchmidtBasisFn(j, variable);
+		delta=samplingTotal-sampledCoeffsValues[j];
+		sampledCoeffsValues[j]+=delta/double(numberTimesSampled);
+		sampledCoeffsVariance[j]+=delta*(samplingTotal-sampledCoeffsValues[j]);
         }
     }
     else {cout << "ERROR: trying to sample in the wrong slot" << endl; exit(EXIT_FAILURE);}
@@ -126,21 +133,17 @@ void basisSlot::sample(double variable, double valueToSample)
 bool basisSlot::addAnotherSlot(basisSlot* anotherSlot)
 {
     bool addable=false;
-    if(totalNumOfBasisFn==(anotherSlot -> totalNumOfBasisFn))
+    if( (totalNumOfBasisFn==(anotherSlot -> totalNumOfBasisFn)) && (bounds==(anotherSlot -> bounds)))
     {
-        addable=true;
-        for(int j=0; j<totalNumOfBasisFn; j++) sampledCoeffs[j]+=(anotherSlot -> sampledCoeffs)[j];
-    }
-    return addable;
-}
-
-bool basisSlot::subtractAnotherSlot(basisSlot* anotherSlot)
-{
-    bool addable=false;
-    if(totalNumOfBasisFn==(anotherSlot -> totalNumOfBasisFn))
-    {
-        addable=true;
-        for(int j=0; j<totalNumOfBasisFn; j++) sampledCoeffs[j]-=(anotherSlot -> sampledCoeffs)[j];
+	    addable=true; long newNumberTimesSampled=numberTimesSampled+(anotherSlot -> numberTimesSampled);
+	for(int j=0; j<totalNumOfBasisFn; j++)
+		{
+		sampledCoeffsValues[j]*=numberTimesSampled;
+		sampledCoeffsValues[j]+=(anotherSlot -> sampledCoeffsValues)[j]*(anotherSlot -> numberTimesSampled);
+		sampledCoeffsValues[j]*=1./double(newNumberTimesSampled);
+		sampledCoeffsVariance[j]+=(anotherSlot -> sampledCoeffsVariance)[j];
+		}
+	numberTimesSampled=newNumberTimesSampled;
     }
     return addable;
 }
@@ -150,17 +153,36 @@ void basisSlot::scale(double norm)
 	if(norm<VERY_SMALL_NUMBER) {cout << "ERROR: norm in basis slot scaling too small: " << norm << endl; exit(EXIT_FAILURE);}
 	for(int j=0; j<totalNumOfBasisFn; j++)
 		{
-			sampledCoeffs[j]*=1./norm;
+			sampledCoeffsValues[j]*=1./norm;
+			sampledCoeffsVariance[j]*=1./norm/norm;
 		}
 }
 
 double basisSlot::sampledFunctionValue(double variable) const
 {
     double result=0;
-    for(int i=0; i<totalNumOfBasisFn; i++) result+=sampledCoeffs[i]*GramSchmidtBasisFn(i,variable);
+    for(int i=0; i<totalNumOfBasisFn; i++) result+=sampledCoeffsValues[i]*GramSchmidtBasisFn(i,variable);
+    result=result*bounds.slotWidth();
     return result;
 }
 
+double basisSlot::sampledFunctionVariance(double variable) const
+{
+	double result=0;
+	if(numberTimesSampled>1)
+		{
+		for(int i=0; i<totalNumOfBasisFn; i++) {result+=sampledCoeffsVariance[i]*GramSchmidtBasisFn(i,variable)*GramSchmidtBasisFn(i,variable)/double(numberTimesSampled-1);}
+		}
+	result=result*bounds.slotWidth()*bounds.slotWidth();
+	return result;
+}
+
+double basisSlot::sampledFunctionError(double variable) const
+{
+	double result=0;
+	if(numberTimesSampled>1) result = sqrt(sampledFunctionVariance(variable)/double(numberTimesSampled));
+	return result;
+}
 
 vector<double> basisSlot::bareBasisSampledCoeffs() const
 {
@@ -170,7 +192,7 @@ vector<double> basisSlot::bareBasisSampledCoeffs() const
     {
         result[i]=0;
         for(int j=i; j<totalNumOfBasisFn; j++)
-            result[i]+=sampledCoeffs[j]*GramSchmidtCoeffs[j][i];
+            result[i]+=sampledCoeffsValues[j]*GramSchmidtCoeffs[j][i];
     }
     return result;
 }
@@ -196,7 +218,7 @@ void basisSlot::printGramSchmidtCoeffs() const
 
 void basisSlot::printSampledCoeffs() const
 {
-    for(int i=0; i<totalNumOfBasisFn; i++) cout << sampledCoeffs[i] << '\t' << endl;
+	for(int i=0; i<totalNumOfBasisFn; i++) cout << sampledCoeffsValues[i] << '\t' << sampledCoeffsVariance[i] << endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -207,6 +229,12 @@ taylorSlot::taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn) : basisSl
 	initializeGramSchmidt();
 }
 
+void taylorSlot::initializeGramSchmidt()
+{
+    
+}
+
+
 double taylorSlot::bareBasisFn(int numOfBasisFn, double variable) const
 {       /* 1 x x^2 ... x^n*/
 	return pow(variable,numOfBasisFn);
@@ -215,21 +243,16 @@ double taylorSlot::bareBasisFn(int numOfBasisFn, double variable) const
 
 double taylorSlot::GramSchmidtBasisFn(int numOfBasisFn, double variable) const
 {
-	/*vector<double> summands;
-	for(int j=0; j<=numOfBasisFn; j++)
-	{
-		summands.push_back(GramSchmidtCoeffs[numOfBasisFn][j]*bareBasisFn(j,variable));
-	}
-	
-	sort(summands.begin(), summands.end());
-	double sum=0;//KahanSum(summands);
-	for(int j=0; j<=numOfBasisFn; j++)
-	{
-		cout << summands[j] << endl; sum+=summands[j];
-	}*/
 
 	double shiftedvariable=2*variable-(bounds.getUpperBound()+bounds.getLowerBound());
 	shiftedvariable=shiftedvariable/bounds.slotWidth();
+	
+	if(abs(shiftedvariable)>1)
+		{
+		if(isAround(abs(shiftedvariable),1)) {if(shiftedvariable>1) shiftedvariable=1; else shiftedvariable=-1;}
+		else {cout << "ERROR: wrong variable in taylorSlot; variable = " << variable << ", number basis function = " << numOfBasisFn << endl; printSlotInfo(); exit(EXIT_FAILURE);}
+		}
+	
 	return sqrt(2*numOfBasisFn+1)*gsl_sf_legendre_Pl (numOfBasisFn, shiftedvariable)/sqrt(bounds.slotWidth());
 
 }

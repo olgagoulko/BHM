@@ -21,6 +21,7 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_ieee_utils.h>
 #include <gsl/gsl_sf_legendre.h>
+#include <gsl/gsl_linalg.h>
 #include <time.h>
 
 //basic parameters and constants

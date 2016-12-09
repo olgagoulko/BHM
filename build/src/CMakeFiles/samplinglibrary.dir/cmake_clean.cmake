@@ -1,5 +1,6 @@
 FILE(REMOVE_RECURSE
   "CMakeFiles/samplinglibrary.dir/basic.cpp.o"
+  "CMakeFiles/samplinglibrary.dir/matrix.cpp.o"
   "CMakeFiles/samplinglibrary.dir/slot.cpp.o"
   "CMakeFiles/samplinglibrary.dir/histogram.cpp.o"
   "libsamplinglibrary.pdb"

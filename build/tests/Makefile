@@ -153,29 +153,29 @@ test/fast:
 	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/build
 .PHONY : test/fast
 
-slot_test.o: slot_test.cpp.o
-.PHONY : slot_test.o
+histogram_unittest.o: histogram_unittest.cpp.o
+.PHONY : histogram_unittest.o
 
 # target to build an object file
-slot_test.cpp.o:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/slot_test.cpp.o
-.PHONY : slot_test.cpp.o
+histogram_unittest.cpp.o:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.o
+.PHONY : histogram_unittest.cpp.o
 
-slot_test.i: slot_test.cpp.i
-.PHONY : slot_test.i
+histogram_unittest.i: histogram_unittest.cpp.i
+.PHONY : histogram_unittest.i
 
 # target to preprocess a source file
-slot_test.cpp.i:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/slot_test.cpp.i
-.PHONY : slot_test.cpp.i
+histogram_unittest.cpp.i:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.i
+.PHONY : histogram_unittest.cpp.i
 
-slot_test.s: slot_test.cpp.s
-.PHONY : slot_test.s
+histogram_unittest.s: histogram_unittest.cpp.s
+.PHONY : histogram_unittest.s
 
 # target to generate assembly for a file
-slot_test.cpp.s:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/slot_test.cpp.s
-.PHONY : slot_test.cpp.s
+histogram_unittest.cpp.s:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.s
+.PHONY : histogram_unittest.cpp.s
 
 # Help Target
 help:
@@ -190,9 +190,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... slot_test.o"
-	@echo "... slot_test.i"
-	@echo "... slot_test.s"
+	@echo "... histogram_unittest.o"
+	@echo "... histogram_unittest.i"
+	@echo "... histogram_unittest.s"
 .PHONY : help
 
 
