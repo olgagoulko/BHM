@@ -41,6 +41,8 @@ gsl/gsl_ieee_utils.h
 -
 gsl/gsl_sf_legendre.h
 -
+gsl/gsl_blas.h
+-
 gsl/gsl_linalg.h
 -
 time.h
@@ -49,6 +51,18 @@ time.h
 /home/olga/Documents/sampling/src/main.cpp
 basic.hpp
 /home/olga/Documents/sampling/src/basic.hpp
+
+/usr/local/include/gsl/gsl_blas.h
+gsl/gsl_vector.h
+-
+gsl/gsl_matrix.h
+-
+gsl/gsl_blas_types.h
+-
+
+/usr/local/include/gsl/gsl_blas_types.h
+gsl/gsl_cblas.h
+-
 
 /usr/local/include/gsl/gsl_block_char.h
 stdlib.h
@@ -132,6 +146,10 @@ gsl/gsl_errno.h
 stdlib.h
 -
 gsl/gsl_errno.h
+-
+
+/usr/local/include/gsl/gsl_cblas.h
+stddef.h
 -
 
 /usr/local/include/gsl/gsl_check_range.h

@@ -32,11 +32,11 @@ return accept;
 	
 /*-------------------------------------------------------------------------------------------------------------------------------*/
 
-bool isAround(double whatWeHave, double whatItShouldBe)
+bool isAround(double whatWeHave, double whatItShouldBe, double accuracy)
 {
 bool result=false;
-if((whatItShouldBe==0)&&(abs(whatWeHave)<ACCURACY)) result=true;
-else if(abs((whatItShouldBe-whatWeHave)/whatItShouldBe)<=ACCURACY) result=true;
+if((whatItShouldBe==0)&&(abs(whatWeHave)<accuracy)) result=true;
+else if(abs((whatItShouldBe-whatWeHave)/whatItShouldBe)<=accuracy) result=true;
 return result;
 }
 

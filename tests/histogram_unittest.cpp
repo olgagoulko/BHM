@@ -61,6 +61,58 @@ static void test_histogram()
 
 }
 
+static void test_combinedSlot()
+{ 
+	double lowerBound=1.; double upperBound=2.5; double middleBound=1.2;
+	
+	slotBounds bounds1(lowerBound, upperBound);
+	int myTestNumberOfBasisFn=4;
+	
+	vector<basisSlot*> myBasisSlots; myBasisSlots.push_back(new taylorSlot(bounds1, myTestNumberOfBasisFn));
+	histogramBasis myTestHistogram(myBasisSlots);
+	
+	slotBounds bounds2(lowerBound, middleBound);
+	myTestNumberOfBasisFn=2;
+	myTestHistogram.appendSlot(new taylorSlot(bounds2, myTestNumberOfBasisFn));
+	
+	slotBounds bounds3(middleBound, upperBound);
+	myTestNumberOfBasisFn=6;
+	myTestHistogram.appendSlot(new taylorSlot(bounds3, myTestNumberOfBasisFn));
+	
+	double stepWidth=0.001; double variable=lowerBound+stepWidth/2.;
+	while(variable<upperBound)
+	{
+		myTestHistogram.sample(variable,cos(variable));
+		variable+=stepWidth;
+	}
+	
+	basisSlot* combo=myTestHistogram.combinedSlot(1, 2);
+	
+	sput_fail_unless(isAround((myTestHistogram.getSlot(0) -> sampledIntegral()),-0.24299885082878656), "sampled integral has the right value");
+	sput_fail_unless(isAround(combo -> sampledIntegral(),(myTestHistogram.getSlot(0) -> sampledIntegral())), "combinedSlot integral is the same as when originally sampled");
+	sput_fail_unless(isAround((myTestHistogram.getSlot(0) -> sampledIntegralVariance()),0.36561204503695705), "sampled variance has the right value");
+	sput_fail_unless(isAround(combo -> sampledIntegralVariance(),(myTestHistogram.getSlot(0) -> sampledIntegralVariance())), "combinedSlot variance is the same as when originally sampled");
+	sput_fail_unless(isAround((myTestHistogram.getSlot(0) -> sampledIntegralError()),0.015612218399637232), "sampled error has the right value");
+	sput_fail_unless(isAround(combo -> sampledIntegralError(),(myTestHistogram.getSlot(0) -> sampledIntegralError())), "combinedSlot error is the same as when originally sampled");
+	
+	double slotWidth=0.1; int numberOverlaps=1; int totalNumOfBasisFn=0;
+	vector<basisSlot*> histogramVector=generateBasisSlots(lowerBound, upperBound, slotWidth, numberOverlaps, totalNumOfBasisFn);
+	histogramBasis myTestHistogram2(histogramVector);
+	slotBounds bounds4(1.4, 2.0);
+	myTestHistogram2.appendSlot(new taylorSlot(bounds4, myTestNumberOfBasisFn));
+	
+	variable=lowerBound+stepWidth/2.;
+	while(variable<upperBound)
+	{
+		myTestHistogram2.sample(variable,1 - 3*variable/2. + 2*variable*variable - variable*variable*variable/2.);
+		variable+=stepWidth;
+	}
+	
+	combo=myTestHistogram2.combinedSlot(4, 9);
+	sput_fail_unless(isAround(combo -> sampledIntegral(),(myTestHistogram2.getSlot(15) -> sampledIntegral())), "big combinedSlot integral is the same as when originally sampled");
+	sput_fail_unless(isAround(combo -> sampledIntegralVariance(),(myTestHistogram2.getSlot(15) -> sampledIntegralVariance())), "big combinedSlot variance is the same as when originally sampled");
+	sput_fail_unless(isAround(combo -> sampledIntegralError(),(myTestHistogram2.getSlot(15) -> sampledIntegralError())), "big combinedSlot error is the same as when originally sampled");
+}
 
 
 int main(int argc, char **argv) {
@@ -69,6 +121,8 @@ int main(int argc, char **argv) {
 	
 	sput_enter_suite("test_histogram()");
 	sput_run_test(test_histogram);
+	sput_enter_suite("test_combinedSlot()");
+	sput_run_test(test_combinedSlot);
 	
 	sput_finish_testing();
 	

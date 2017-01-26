@@ -16,7 +16,7 @@ include_directories(
     . .. ../src
     )
     
-add_executable(test histogram_unittest.cpp sput.h)
+add_executable(test matrix_unittest.cpp sput.h)
     
 target_link_libraries(test samplinglibrary ${GSL_LIBRARIES})
 

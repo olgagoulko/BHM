@@ -41,6 +41,7 @@ public:
 	bool getIsInfinite() const {return noUpperBound;}
 	
 	bool checkIfInBounds(double valueToCheck) const;
+	bool overlapping(const slotBounds& compareBounds) const;
 	double slotWidth() const;
 	
 	void printBoundsInfo() const;
@@ -57,11 +58,13 @@ protected:
 	std::vector< std::vector<double> >GramSchmidtCoeffs;
 	std::vector<double>sampledCoeffsValues;
 	std::vector<double>sampledCoeffsVariance;
+	double integral;
+	double variance;
 	long numberTimesSampled;
 	
 public:
 	
-	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 1);
+	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
 	
 	virtual void initializeGramSchmidt();
 	
@@ -73,9 +76,16 @@ public:
 	
 	void sample(double variable, double valueToSample);
 	bool addAnotherSlot(basisSlot* anotherSlot);
+	void combineWithSlot(basisSlot* anotherSlot);
 	void scale(double norm);
 	
 	long getNumberTimesSampled() const {return numberTimesSampled;}
+	slotBounds getBounds() const {return bounds;}
+	
+	bool enoughSampled(int minNumberTimesSampled = 10) const;
+	double sampledIntegral() const;
+	double sampledIntegralVariance() const;
+	double sampledIntegralError() const;
 	double sampledFunctionValue(double variable) const;
 	double sampledFunctionVariance(double variable) const;
 	double sampledFunctionError(double variable) const;
@@ -95,7 +105,7 @@ private:
 	
 public:
 	
-	taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn);
+	taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
 	
 	void initializeGramSchmidt();
 	

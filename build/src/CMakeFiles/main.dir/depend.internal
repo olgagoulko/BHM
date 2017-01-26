@@ -4,6 +4,8 @@
 src/CMakeFiles/main.dir/main.cpp.o
  /home/olga/Documents/sampling/src/basic.hpp
  /home/olga/Documents/sampling/src/main.cpp
+ /usr/local/include/gsl/gsl_blas.h
+ /usr/local/include/gsl/gsl_blas_types.h
  /usr/local/include/gsl/gsl_block_char.h
  /usr/local/include/gsl/gsl_block_complex_double.h
  /usr/local/include/gsl/gsl_block_complex_float.h
@@ -18,6 +20,7 @@ src/CMakeFiles/main.dir/main.cpp.o
  /usr/local/include/gsl/gsl_block_uint.h
  /usr/local/include/gsl/gsl_block_ulong.h
  /usr/local/include/gsl/gsl_block_ushort.h
+ /usr/local/include/gsl/gsl_cblas.h
  /usr/local/include/gsl/gsl_check_range.h
  /usr/local/include/gsl/gsl_complex.h
  /usr/local/include/gsl/gsl_errno.h

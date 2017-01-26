@@ -1,62 +1,89 @@
 #include "histogram.hpp"
+#include "matrix.hpp"
 #include "basic.hpp"
 #include "slot.hpp"
-#include "sput.h"
 
-using namespace std; 
-
-static void test_histogram()
-{ 
-	double minVar=0; double maxVar=5; double slotWidth=0.5; int numberOverlaps=5; int totalNumOfBasisFn=4;
-	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
-	histogramBasis myTestHistogram(histogramVector);
-	
-	myTestHistogram.sample(0, 2.0);
-	myTestHistogram.sample(0.55, 2.0);
-	myTestHistogram.sample(4.0, 5.0);
-	myTestHistogram.sample(10, 1.5);
-	myTestHistogram.sample(8, 3.0);
-	
-	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(-1.)  == 4.5, "4.5 in excess bin");
-	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(6.)  == 4.5, "4.5 in excess bin");
-	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(10.)  == 4.5, "4.5 in excess bin");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0), 64.0), "64.0 at zero");
-	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(2.5) == 0, "0 at 2.5 where not sampled");
-	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(4.88) == 0, "0 at 4.88 where not sampled");
-	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(4.999999999999) == 0, "0 just below 5.0 where not sampled");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.55),8321./625.), "value at 0.55");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.52),1028866./78125.), "value at 0.52");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.2),-2816./1875.), "value at 0.2");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.23),-636292./234375.), "value at 0.23");
-	
-	//due to numerical precision (last digit) testing at slot boundaries is impossible --> this will never matter in real life
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.900000000000001),7168./625.), "value at 3.9");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95),12352./625.), "value at 3.95");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4),6816./125.), "value at 4");
-	
-	myTestHistogram.sample(4,-0.4);
-	myTestHistogram.sample(4.23,1.1);
-	
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.65),-4209./15625.), "value at 3.65");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95),69272481./3906250.), "value at 3.95");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4),190765789./3906250.), "value at 4");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.16),187270944./244140625.), "value at 4.16");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.23),474382003./195312500.), "value at 4.23");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.300000000000001),881504./390625.), "value at 4.3");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.44),459764589./488281250.), "value at 4.44");
-
-}
-
+using namespace std;  
 
 int main(int argc, char **argv) {
 	
-	sput_start_testing();
+	cout << "---------- Production test: sampling realistic function with taylorSlot -----------" << endl;
 	
-	sput_enter_suite("test_histogram()");
-	sput_run_test(test_histogram);
+	long unsigned int seed=456475;
+	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
+	gsl_rng_set (RNG, seed);
 	
-	sput_finish_testing();
+	long samplingSteps=1e7;
+	double variable;
 	
-	return sput_get_return_value();
+	double minVar=0.5; double maxVar=6.5; double slotWidth=0.5; int numberOverlaps=10; int totalNumOfBasisFn=4;
+	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
+	histogramBasis myTestHistogram(histogramVector);
+	
+	for(int i=0; i<samplingSteps;i++)
+		{
+		variable=minVar+(maxVar-minVar)*gsl_rng_uniform(RNG);
+		myTestHistogram.sample(variable,1./sqrt(variable));
+		}
+		
+	ofstream output("histogram_testoutput.dat");
+	ofstream outputwav("histogram_testoutput_weightedav.dat");
+	double printStep=0.01; double currentVar; pair<double,double> sampledResult; pair<double,double> sampledWeightedResult;
+	unsigned int vectorSize;
+	for(int i=0; i<(maxVar-minVar)/printStep;i++) 
+	{
+		currentVar=minVar+i*printStep;
+		sampledResult=myTestHistogram.sampledFunctionValueAverage(currentVar);
+		sampledWeightedResult=myTestHistogram.sampledFunctionValueWeightedAverage(currentVar);
+		output << currentVar << '\t' << sampledResult.first << '\t' << sampledResult.second << endl;
+		outputwav << currentVar << '\t' << sampledWeightedResult.first << '\t' << sampledWeightedResult.second << endl;
+		vectorSize=i;
+	}
+	
+	vectorSize++;
+	double scalingErrorMatrix=1e-9; double scaledElement;
+	double* matrix=secondDerivativeMatrix(vectorSize);
+	double vector[vectorSize];
+	for(unsigned int i=0; i<vectorSize;i++) 
+	{
+		currentVar=minVar+i*printStep;
+		sampledResult=myTestHistogram.sampledFunctionValueAverage(currentVar);
+		scaledElement=scalingErrorMatrix/sampledResult.second/sampledResult.second;
+		matrix[i*vectorSize+i]+=scaledElement;
+		vector[i]=sampledResult.first*scaledElement;
+	}
+	
+	solveLinearEquation(matrix,vector,vectorSize);
+	
+	ofstream output2("histogram_testoutput2.dat");
+	for(unsigned int i=0; i<vectorSize;i++) 
+	{
+		currentVar=minVar+i*printStep;
+		output2 << currentVar << '\t' << vector[i] << endl;
+	}
+	
+	scalingErrorMatrix=1e-7;
+	for(unsigned int i=0; i<vectorSize;i++) 
+	{
+		for(unsigned int j=0; j<vectorSize;j++) matrix[i*vectorSize+j]=0;
+		currentVar=minVar+i*printStep;
+		sampledResult=myTestHistogram.sampledFunctionValueAverage(currentVar);
+		scaledElement=scalingErrorMatrix/sampledResult.second/sampledResult.second;
+		matrix[i*vectorSize+i]=scaledElement+1.;
+		vector[i]=(sampledResult.first*scaledElement)+(1./sqrt(currentVar));
+	}
+	
+	solveLinearEquation(matrix,vector,vectorSize);
+	
+	ofstream output3("histogram_testoutput3.dat");
+	for(unsigned int i=0; i<vectorSize;i++) 
+	{
+		currentVar=minVar+i*printStep;
+		output3 << currentVar << '\t' << vector[i] << endl;
+	}
+
+	cout << "----------------------------- Testing finished ------------------------------------" << endl;
+	
+	return 0;
 	
 }

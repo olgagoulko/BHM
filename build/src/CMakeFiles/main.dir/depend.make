@@ -3,6 +3,8 @@
 
 src/CMakeFiles/main.dir/main.cpp.o: ../src/basic.hpp
 src/CMakeFiles/main.dir/main.cpp.o: ../src/main.cpp
+src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_blas.h
+src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_blas_types.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_char.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_complex_double.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_complex_float.h
@@ -17,6 +19,7 @@ src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_uchar.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_uint.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_ulong.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_block_ushort.h
+src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_cblas.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_check_range.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_complex.h
 src/CMakeFiles/main.dir/main.cpp.o: /usr/local/include/gsl/gsl_errno.h

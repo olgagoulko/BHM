@@ -42,6 +42,14 @@ bool slotBounds::checkIfInBounds(double valueToCheck) const
     return isInBounds;
 }
 
+bool slotBounds::overlapping(const slotBounds& compareBounds) const
+{
+	bool overlapping = ( checkIfInBounds(compareBounds.getLowerBound()) && (noUpperBound || !isAround(upperBound,compareBounds.getLowerBound())) );
+	if(overlapping == false) overlapping = ( compareBounds.checkIfInBounds(lowerBound) && (compareBounds.getIsInfinite() || !isAround(lowerBound,compareBounds.getUpperBound())) );
+	return overlapping;
+}
+
+
 double slotBounds::slotWidth() const
 {
 	double width=0;
@@ -64,9 +72,11 @@ else cout << fixed << setprecision(16) << "upperBound = " << upperBound << endl;
 basisSlot::basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn)
 {
     bounds=theBounds;
-    totalNumOfBasisFn=1;
-    if(theTotalNumOfBasisFn>1) totalNumOfBasisFn=theTotalNumOfBasisFn;
+    totalNumOfBasisFn=0;
+    if(theTotalNumOfBasisFn>0) totalNumOfBasisFn=theTotalNumOfBasisFn;
     GramSchmidtCoeffs.resize(totalNumOfBasisFn);
+    integral=0;
+    variance=0;
     numberTimesSampled=0;
     for(int i=0; i<totalNumOfBasisFn; i++)
     {
@@ -119,6 +129,9 @@ void basisSlot::sample(double variable, double valueToSample)
     {
     numberTimesSampled++;
     double samplingTotal; double delta;    
+    delta=valueToSample-integral;
+    integral+=delta/double(numberTimesSampled);
+    variance+=delta*(valueToSample-integral);
     for(int j=0; j<totalNumOfBasisFn; j++)
         {
 		samplingTotal=weight(variable)*valueToSample*GramSchmidtBasisFn(j, variable);
@@ -135,34 +148,88 @@ bool basisSlot::addAnotherSlot(basisSlot* anotherSlot)
     bool addable=false;
     if( (totalNumOfBasisFn==(anotherSlot -> totalNumOfBasisFn)) && (bounds==(anotherSlot -> bounds)))
     {
-	    addable=true; long newNumberTimesSampled=numberTimesSampled+(anotherSlot -> numberTimesSampled);
+	addable=true;
+	long newNumberTimesSampled=numberTimesSampled+(anotherSlot -> numberTimesSampled);
+	double auxiliary=(integral-(anotherSlot -> integral)); auxiliary=auxiliary*auxiliary;
+	auxiliary*=numberTimesSampled*(anotherSlot -> numberTimesSampled);
+	integral=(integral*numberTimesSampled+(anotherSlot -> integral)*(anotherSlot -> numberTimesSampled))/double(newNumberTimesSampled);
+	variance+=(anotherSlot -> variance)+auxiliary/double(newNumberTimesSampled);
 	for(int j=0; j<totalNumOfBasisFn; j++)
 		{
 		sampledCoeffsValues[j]*=numberTimesSampled;
 		sampledCoeffsValues[j]+=(anotherSlot -> sampledCoeffsValues)[j]*(anotherSlot -> numberTimesSampled);
 		sampledCoeffsValues[j]*=1./double(newNumberTimesSampled);
-		sampledCoeffsVariance[j]+=(anotherSlot -> sampledCoeffsVariance)[j];
+	
+		auxiliary=sampledCoeffsValues[j]-(anotherSlot -> sampledCoeffsValues)[j]; auxiliary=auxiliary*auxiliary;
+		auxiliary*=numberTimesSampled*(anotherSlot -> numberTimesSampled);
+		sampledCoeffsVariance[j]+=(anotherSlot -> sampledCoeffsVariance)[j]+auxiliary/double(newNumberTimesSampled);
 		}
 	numberTimesSampled=newNumberTimesSampled;
     }
     return addable;
 }
 
+void basisSlot::combineWithSlot(basisSlot* anotherSlot)
+{
+	double auxiliary=integral-(anotherSlot -> integral); auxiliary=auxiliary*auxiliary;
+	auxiliary*=numberTimesSampled*(anotherSlot -> numberTimesSampled);
+	integral=integral*numberTimesSampled+(anotherSlot -> integral)*(anotherSlot -> numberTimesSampled);
+	variance+=(anotherSlot -> variance);
+	numberTimesSampled+=(anotherSlot -> numberTimesSampled);
+	integral=integral/double(numberTimesSampled);
+	variance+=auxiliary/double(numberTimesSampled);
+}
+
+
 void basisSlot::scale(double norm)
 {
-	if(norm<VERY_SMALL_NUMBER) {cout << "ERROR: norm in basis slot scaling too small: " << norm << endl; exit(EXIT_FAILURE);}
+	double valuesScaling=1./norm;
+	double varScaling=1./norm/norm;
+	
 	for(int j=0; j<totalNumOfBasisFn; j++)
 		{
-			sampledCoeffsValues[j]*=1./norm;
-			sampledCoeffsVariance[j]*=1./norm/norm;
+			sampledCoeffsValues[j]*=valuesScaling;
+			sampledCoeffsVariance[j]*=varScaling;
 		}
 }
+
+bool basisSlot::enoughSampled(int minNumberTimesSampled) const
+{
+	bool enough=true;
+	if(numberTimesSampled<minNumberTimesSampled) enough=false;
+	return enough;
+}
+
+double basisSlot::sampledIntegral() const
+	{
+	return integral*bounds.slotWidth();
+	}
+
+
+double basisSlot::sampledIntegralVariance() const
+{
+	double result=0;
+	if(numberTimesSampled>1) result=variance*bounds.slotWidth()*bounds.slotWidth()/double(numberTimesSampled-1);
+	return result;
+}
+
+
+double basisSlot::sampledIntegralError() const
+{
+	double result=0;
+	if(numberTimesSampled>1) result= sqrt(sampledIntegralVariance()/double(numberTimesSampled));
+	return result;
+}
+
 
 double basisSlot::sampledFunctionValue(double variable) const
 {
     double result=0;
     for(int i=0; i<totalNumOfBasisFn; i++) result+=sampledCoeffsValues[i]*GramSchmidtBasisFn(i,variable);
-    result=result*bounds.slotWidth();
+    
+    if(totalNumOfBasisFn==0) result=integral;
+    else result=result*bounds.slotWidth();	// c_i=int function*e_i = w/N sum (function*e_i)
+    
     return result;
 }
 
@@ -172,8 +239,9 @@ double basisSlot::sampledFunctionVariance(double variable) const
 	if(numberTimesSampled>1)
 		{
 		for(int i=0; i<totalNumOfBasisFn; i++) {result+=sampledCoeffsVariance[i]*GramSchmidtBasisFn(i,variable)*GramSchmidtBasisFn(i,variable)/double(numberTimesSampled-1);}
+		if(totalNumOfBasisFn==0) result=variance/double(numberTimesSampled-1);
+		else result=result*bounds.slotWidth()*bounds.slotWidth();
 		}
-	result=result*bounds.slotWidth()*bounds.slotWidth();
 	return result;
 }
 
@@ -218,6 +286,7 @@ void basisSlot::printGramSchmidtCoeffs() const
 
 void basisSlot::printSampledCoeffs() const
 {
+	cout << integral << '\t' << variance << '\t' << numberTimesSampled << endl;
 	for(int i=0; i<totalNumOfBasisFn; i++) cout << sampledCoeffsValues[i] << '\t' << sampledCoeffsVariance[i] << endl;
 }
 

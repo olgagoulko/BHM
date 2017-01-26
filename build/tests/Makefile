@@ -153,29 +153,29 @@ test/fast:
 	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/build
 .PHONY : test/fast
 
-histogram_unittest.o: histogram_unittest.cpp.o
-.PHONY : histogram_unittest.o
+matrix_unittest.o: matrix_unittest.cpp.o
+.PHONY : matrix_unittest.o
 
 # target to build an object file
-histogram_unittest.cpp.o:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.o
-.PHONY : histogram_unittest.cpp.o
+matrix_unittest.cpp.o:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/matrix_unittest.cpp.o
+.PHONY : matrix_unittest.cpp.o
 
-histogram_unittest.i: histogram_unittest.cpp.i
-.PHONY : histogram_unittest.i
+matrix_unittest.i: matrix_unittest.cpp.i
+.PHONY : matrix_unittest.i
 
 # target to preprocess a source file
-histogram_unittest.cpp.i:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.i
-.PHONY : histogram_unittest.cpp.i
+matrix_unittest.cpp.i:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/matrix_unittest.cpp.i
+.PHONY : matrix_unittest.cpp.i
 
-histogram_unittest.s: histogram_unittest.cpp.s
-.PHONY : histogram_unittest.s
+matrix_unittest.s: matrix_unittest.cpp.s
+.PHONY : matrix_unittest.s
 
 # target to generate assembly for a file
-histogram_unittest.cpp.s:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/histogram_unittest.cpp.s
-.PHONY : histogram_unittest.cpp.s
+matrix_unittest.cpp.s:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/matrix_unittest.cpp.s
+.PHONY : matrix_unittest.cpp.s
 
 # Help Target
 help:
@@ -190,9 +190,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... histogram_unittest.o"
-	@echo "... histogram_unittest.i"
-	@echo "... histogram_unittest.s"
+	@echo "... matrix_unittest.o"
+	@echo "... matrix_unittest.i"
+	@echo "... matrix_unittest.s"
 .PHONY : help
 
 
