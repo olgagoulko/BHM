@@ -50,6 +50,10 @@ static void test_matrix()
 	sput_fail_unless(isAround(binomMatrix[6],0), "binomial matrix element 1,0");
 	sput_fail_unless(isAround(binomMatrix[9],3), "binomial matrix element 1,3");
 	sput_fail_unless(isAround(binomMatrix[16],6), "binomial matrix element 2,4");
+	
+	double* binomVec=binomialVector(binMatSize-1);
+	
+	sput_fail_unless(binomVec[0]==1&&binomVec[1]==4&&binomVec[2]==6&&binomVec[3]==4&&binomVec[4]==1, "binomial vector correct");
 
 } 
 

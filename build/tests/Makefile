@@ -153,29 +153,29 @@ test/fast:
 	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/build
 .PHONY : test/fast
 
-matrix_unittest.o: matrix_unittest.cpp.o
-.PHONY : matrix_unittest.o
+main1d_test.o: main1d_test.cpp.o
+.PHONY : main1d_test.o
 
 # target to build an object file
-matrix_unittest.cpp.o:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/matrix_unittest.cpp.o
-.PHONY : matrix_unittest.cpp.o
+main1d_test.cpp.o:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/main1d_test.cpp.o
+.PHONY : main1d_test.cpp.o
 
-matrix_unittest.i: matrix_unittest.cpp.i
-.PHONY : matrix_unittest.i
+main1d_test.i: main1d_test.cpp.i
+.PHONY : main1d_test.i
 
 # target to preprocess a source file
-matrix_unittest.cpp.i:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/matrix_unittest.cpp.i
-.PHONY : matrix_unittest.cpp.i
+main1d_test.cpp.i:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/main1d_test.cpp.i
+.PHONY : main1d_test.cpp.i
 
-matrix_unittest.s: matrix_unittest.cpp.s
-.PHONY : matrix_unittest.s
+main1d_test.s: main1d_test.cpp.s
+.PHONY : main1d_test.s
 
 # target to generate assembly for a file
-matrix_unittest.cpp.s:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/matrix_unittest.cpp.s
-.PHONY : matrix_unittest.cpp.s
+main1d_test.cpp.s:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/main1d_test.cpp.s
+.PHONY : main1d_test.cpp.s
 
 # Help Target
 help:
@@ -190,9 +190,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... matrix_unittest.o"
-	@echo "... matrix_unittest.i"
-	@echo "... matrix_unittest.s"
+	@echo "... main1d_test.o"
+	@echo "... main1d_test.i"
+	@echo "... main1d_test.s"
 .PHONY : help
 
 

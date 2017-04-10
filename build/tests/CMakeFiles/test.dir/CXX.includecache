@@ -68,25 +68,15 @@ slot.hpp
 basic.hpp
 ../tests/../src/basic.hpp
 
-/home/olga/Documents/sampling/tests/matrix_unittest.cpp
-basic.hpp
-/home/olga/Documents/sampling/tests/basic.hpp
-matrix.hpp
-/home/olga/Documents/sampling/tests/matrix.hpp
+/home/olga/Documents/sampling/tests/main1d_test.cpp
 histogram.hpp
 /home/olga/Documents/sampling/tests/histogram.hpp
-sput.h
-/home/olga/Documents/sampling/tests/sput.h
-
-/home/olga/Documents/sampling/tests/sput.h
-stdio.h
--
-stdlib.h
--
-string.h
--
-time.h
--
+matrix.hpp
+/home/olga/Documents/sampling/tests/matrix.hpp
+basic.hpp
+/home/olga/Documents/sampling/tests/basic.hpp
+slot.hpp
+/home/olga/Documents/sampling/tests/slot.hpp
 
 /usr/local/include/gsl/gsl_blas.h
 gsl/gsl_vector.h

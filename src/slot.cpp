@@ -78,6 +78,7 @@ basisSlot::basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn)
     integral=0;
     variance=0;
     numberTimesSampled=0;
+    enoughData=false;
     for(int i=0; i<totalNumOfBasisFn; i++)
     {
         sampledCoeffsValues.push_back(0);
@@ -176,40 +177,48 @@ void basisSlot::combineWithSlot(basisSlot* anotherSlot)
 	integral=integral*numberTimesSampled+(anotherSlot -> integral)*(anotherSlot -> numberTimesSampled);
 	variance+=(anotherSlot -> variance);
 	numberTimesSampled+=(anotherSlot -> numberTimesSampled);
-	integral=integral/double(numberTimesSampled);
-	variance+=auxiliary/double(numberTimesSampled);
+	if(numberTimesSampled>0) integral=integral/double(numberTimesSampled);
+	if(numberTimesSampled>0) variance+=auxiliary/double(numberTimesSampled);
 }
 
 
-void basisSlot::scale(double norm)
+void basisSlot::scale(long norm)
 {
-	double valuesScaling=1./norm;
-	double varScaling=1./norm/norm;
-	
-	for(int j=0; j<totalNumOfBasisFn; j++)
+	if(norm>numberTimesSampled)
 		{
-			sampledCoeffsValues[j]*=valuesScaling;
-			sampledCoeffsVariance[j]*=varScaling;
+		double normScaling=numberTimesSampled/double(norm);
+		double varScaling=normScaling*(norm-numberTimesSampled);
+		
+		variance+=integral*integral*varScaling;
+		integral*=normScaling;
+		
+		for(int j=0; j<totalNumOfBasisFn; j++)
+			{
+			sampledCoeffsVariance[j]+=sampledCoeffsValues[j]*sampledCoeffsValues[j]*varScaling;
+			sampledCoeffsValues[j]*=normScaling;
+			}
+		numberTimesSampled=norm;
 		}
 }
 
-bool basisSlot::enoughSampled(int minNumberTimesSampled) const
+
+void basisSlot::updateEnoughSampled(int minNumberTimesSampled)
 {
-	bool enough=true;
-	if(numberTimesSampled<minNumberTimesSampled) enough=false;
-	return enough;
+	if(numberTimesSampled>=minNumberTimesSampled) enoughData=true;
+	else enoughData=false;
 }
 
 double basisSlot::sampledIntegral() const
 	{
-	return integral*bounds.slotWidth();
+	//return integral*bounds.slotWidth();
+		return integral;
 	}
 
 
 double basisSlot::sampledIntegralVariance() const
 {
 	double result=0;
-	if(numberTimesSampled>1) result=variance*bounds.slotWidth()*bounds.slotWidth()/double(numberTimesSampled-1);
+	if(numberTimesSampled>1) result=variance/* *bounds.slotWidth()*bounds.slotWidth()*//double(numberTimesSampled-1);
 	return result;
 }
 
@@ -227,8 +236,9 @@ double basisSlot::sampledFunctionValue(double variable) const
     double result=0;
     for(int i=0; i<totalNumOfBasisFn; i++) result+=sampledCoeffsValues[i]*GramSchmidtBasisFn(i,variable);
     
-    if(totalNumOfBasisFn==0) result=integral;
-    else result=result*bounds.slotWidth();	// c_i=int function*e_i = w/N sum (function*e_i)
+    if(totalNumOfBasisFn==0) result=integral/bounds.slotWidth();
+    //if(totalNumOfBasisFn==0) result=integral;
+    //else result=result*bounds.slotWidth();	// c_i=int function*e_i = w/N sum (function*e_i)
     
     return result;
 }
@@ -239,8 +249,9 @@ double basisSlot::sampledFunctionVariance(double variable) const
 	if(numberTimesSampled>1)
 		{
 		for(int i=0; i<totalNumOfBasisFn; i++) {result+=sampledCoeffsVariance[i]*GramSchmidtBasisFn(i,variable)*GramSchmidtBasisFn(i,variable)/double(numberTimesSampled-1);}
-		if(totalNumOfBasisFn==0) result=variance/double(numberTimesSampled-1);
-		else result=result*bounds.slotWidth()*bounds.slotWidth();
+		if(totalNumOfBasisFn==0) result=variance/double(numberTimesSampled-1)/bounds.slotWidth()/bounds.slotWidth();
+		//if(totalNumOfBasisFn==0) result=variance/double(numberTimesSampled-1);
+		//else result=result*bounds.slotWidth()*bounds.slotWidth();
 		}
 	return result;
 }

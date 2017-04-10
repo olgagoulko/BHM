@@ -73,6 +73,7 @@ static void test_taylorSlot()
 	sput_fail_unless(isAround(myTestSlot.sampledFunctionVariance(1.8),125.1), "sampled function variance at 1.8");
 	sput_fail_unless(isAround(myTestSlot.sampledFunctionError(1.8),3*sqrt(27.8)/2.), "sampled function error at 1.8");
 	
+	myTestSlot.updateEnoughSampled();
 	sput_fail_unless(myTestSlot.enoughSampled()==false, "sampled fewer than 10 times");
 	sput_fail_unless(myTestSlot.enoughSampled(1)==true, "sampled more than once");
 	

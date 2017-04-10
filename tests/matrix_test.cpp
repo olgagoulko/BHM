@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 	int defaultSplineOrder=4;
 	
 	spline allSpline=myTestHistogram.oneSplineFit(defaultSplineOrder);
-	allSpline.printSpline(); cout << endl;
+	//cout << "Spline over all data" << endl; allSpline.printSpline(); cout << endl;
 		
 	vector<basisSlot*> slots1; vector<basisSlot*> slots2; vector<basisSlot*> slots3; vector<basisSlot*> slots4; 
 	for(unsigned int i=0;i<totalNumberSlots/4;i++) {slots1.push_back(myTestHistogram.getSlot(i));}
@@ -53,22 +53,23 @@ int main(int argc, char **argv) {
 	histogramBasis analysisHistogram4(slots4);
 
 	spline spline1=analysisHistogram1.oneSplineFit(defaultSplineOrder);
-	spline1.printSpline(); cout << endl;
+	//cout << "Spline over interval 0" << endl; spline1.printSpline(); cout << endl;
 	spline spline2=analysisHistogram2.oneSplineFit(defaultSplineOrder);
-	//spline2.printSpline(); cout << endl;
+	//cout << "Spline over interval 1" << endl; spline2.printSpline(); cout << endl;
 	spline spline3=analysisHistogram3.oneSplineFit(defaultSplineOrder);
-	//spline3.printSpline(); cout << endl;
+	//cout << "Spline over interval 2" << endl; spline3.printSpline(); cout << endl;
 	spline spline4=analysisHistogram4.oneSplineFit(defaultSplineOrder);
-	spline4.printSpline(); cout << endl;
+	//cout << "Spline over interval 3" << endl; spline4.printSpline(); cout << endl;
 	
 	vector<unsigned int> intervalBoundaries; intervalBoundaries.push_back(totalNumberSlots/4); intervalBoundaries.push_back(totalNumberSlots/2); intervalBoundaries.push_back(3*totalNumberSlots/4);
 	splineArray theFit = myTestHistogram.splineFit(intervalBoundaries, 0, defaultSplineOrder);
-	theFit.printSplineArrayInfo();
-	theFit.printSplines();
+	//cout << "Spline over intervals" << endl; theFit.printSplineArrayInfo(); theFit.printSplines();
 	
 	splineArray theMatchedFit = myTestHistogram.splineFit(intervalBoundaries, 1e10, defaultSplineOrder);
-	//theMatchedFit.printSplineArrayInfo();
-	//theMatchedFit.printSplines();
+	cout << "Smoothed spline over intervals" << endl; theMatchedFit.printSplineArrayInfo(); theMatchedFit.printSplines();
+	
+	splineArray exactlyMatchedFit = myTestHistogram.matchedSplineFitSmallBins(intervalBoundaries, defaultSplineOrder);
+	cout << "Exactly matched spline over intervals" << endl; exactlyMatchedFit.printSplineArrayInfo(); exactlyMatchedFit.printSplines();
 	
 	ofstream output("histogram_testoutput.dat");
 	double printStep=0.01; double currentVar; pair<double,double> sampledResult;
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
 		{
 		currentVar=minVar+i*printStep+printStep/2;
 		sampledResult=myTestHistogram.sampledFunctionValueWeightedAverage(currentVar);
-		output << currentVar << '\t' << sampledResult.first << '\t' << sampledResult.second << '\t' << allSpline.splineValue(currentVar) << '\t' << allSpline.splineError(currentVar) << '\t' << theFit.splineValue(currentVar) << '\t' << theFit.splineError(currentVar) << '\t' << theMatchedFit.splineValue(currentVar) << '\t' << theMatchedFit.splineError(currentVar) << '\t';
+		output << currentVar << '\t' << sampledResult.first << '\t' << sampledResult.second << '\t' << allSpline.splineValue(currentVar) << '\t' << allSpline.splineError(currentVar) << '\t' << theFit.splineValue(currentVar) << '\t' << theFit.splineError(currentVar) << '\t' << theMatchedFit.splineValue(currentVar) << '\t' << theMatchedFit.splineError(currentVar) << '\t' << exactlyMatchedFit.splineValue(currentVar) << '\t' << exactlyMatchedFit.splineError(currentVar) << '\t';
 		if(currentVar<=1.5) output << spline1.splineValue(currentVar) << '\t' << spline1.splineError(currentVar) << endl;
 		else if(currentVar<=2.0) output << spline2.splineValue(currentVar) << '\t' << spline2.splineError(currentVar) << endl;
 		else if(currentVar<=2.5) output << spline3.splineValue(currentVar) << '\t' << spline3.splineError(currentVar) << endl;

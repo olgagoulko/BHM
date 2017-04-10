@@ -1,1 +1,1 @@
-g++   -g -Wall    CMakeFiles/test.dir/matrix_unittest.cpp.o  -o test -rdynamic ../src/libsamplinglibrary.a -L/usr/local/lib -lgsl -lgslcblas -lm 
+g++   -g -Wall    CMakeFiles/test.dir/main1d_test.cpp.o  -o test -rdynamic ../src/libsamplinglibrary.a -L/usr/local/lib -lgsl -lgslcblas -lm 

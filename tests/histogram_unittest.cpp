@@ -112,6 +112,44 @@ static void test_combinedSlot()
 	sput_fail_unless(isAround(combo -> sampledIntegral(),(myTestHistogram2.getSlot(15) -> sampledIntegral())), "big combinedSlot integral is the same as when originally sampled");
 	sput_fail_unless(isAround(combo -> sampledIntegralVariance(),(myTestHistogram2.getSlot(15) -> sampledIntegralVariance())), "big combinedSlot variance is the same as when originally sampled");
 	sput_fail_unless(isAround(combo -> sampledIntegralError(),(myTestHistogram2.getSlot(15) -> sampledIntegralError())), "big combinedSlot error is the same as when originally sampled");
+	
+	upperBound=2.0;
+	vector<basisSlot*> fineVector=generateBasisSlots(lowerBound, upperBound, slotWidth, numberOverlaps, totalNumOfBasisFn);
+	histogramBasis fineHistogram(fineVector);
+	
+	variable=lowerBound+slotWidth/2.;
+	fineHistogram.sample(variable,2);
+	variable+=slotWidth;
+	fineHistogram.sample(variable,1); fineHistogram.sample(variable,1);
+	variable+=slotWidth;
+	fineHistogram.sample(variable,1); fineHistogram.sample(variable,2); fineHistogram.sample(variable,2);
+	variable+=slotWidth;
+	fineHistogram.sample(variable,-1); fineHistogram.sample(variable,1); fineHistogram.sample(variable,-1); fineHistogram.sample(variable,1); fineHistogram.sample(variable,5);
+	variable+=2*slotWidth;
+	fineHistogram.sample(variable,0); fineHistogram.sample(variable,1); fineHistogram.sample(variable,-1); fineHistogram.sample(variable,-1); fineHistogram.sample(variable,1);
+	variable+=2*slotWidth;
+	fineHistogram.sample(variable,1);
+	
+	int minNumberTimesSampled=5;
+	histogramBasis coarseHistogram = fineHistogram.coarseGrainedHistogram(minNumberTimesSampled);
+	sput_fail_unless(coarseHistogram.getSize()==3, "coarse histogram has 3 slots");
+	sput_fail_unless( (coarseHistogram.getSlot(0)->getNumberTimesSampled())==6, "coarse histogram 6 times sampled in slot 0");
+	sput_fail_unless( (coarseHistogram.getSlot(1)->getNumberTimesSampled())==5, "coarse histogram 5 times sampled in slot 1");
+	sput_fail_unless( (coarseHistogram.getSlot(2)->getNumberTimesSampled())==6, "coarse histogram 6 times sampled in slot 2");
+	sput_fail_unless( (coarseHistogram.getSlot(0)->getBounds()).getUpperBound()==1.3, "coarse histogram correct slot boundary");
+	sput_fail_unless( (coarseHistogram.getSlot(2)->getBounds()).getLowerBound()==1.4, "coarse histogram correct slot boundary");
+	
+	variable+=2*slotWidth;
+	fineHistogram.sample(variable,0); fineHistogram.sample(variable,0); fineHistogram.sample(variable,1); fineHistogram.sample(variable,1);
+	histogramBasis coarseHistogram2 = fineHistogram.coarseGrainedHistogram(minNumberTimesSampled);
+	sput_fail_unless(coarseHistogram2.getSize()==4, "new coarse histogram has 4 slots");
+	sput_fail_unless( (coarseHistogram2.getSlot(0)->getNumberTimesSampled())==6, "new coarse histogram 6 times sampled in slot 0");
+	sput_fail_unless( (coarseHistogram2.getSlot(1)->getNumberTimesSampled())==5, "new coarse histogram 5 times sampled in slot 1");
+	sput_fail_unless( (coarseHistogram2.getSlot(2)->getNumberTimesSampled())==5, "new coarse histogram 5 times sampled in slot 2");
+	sput_fail_unless( (coarseHistogram2.getSlot(3)->getNumberTimesSampled())==5, "new coarse histogram 5 times sampled in slot 3");
+	sput_fail_unless( (coarseHistogram2.getSlot(2)->getBounds()).getLowerBound()==1.4, "new coarse histogram correct slot boundary");
+	sput_fail_unless( (coarseHistogram2.getSlot(2)->getBounds()).getUpperBound()==1.6, "new coarse histogram correct slot boundary");
+	sput_fail_unless( (coarseHistogram2.getSlot(3)->getBounds()).getLowerBound()==1.6, "new coarse histogram correct slot boundary");
 }
 
 

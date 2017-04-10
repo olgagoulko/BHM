@@ -61,10 +61,12 @@ protected:
 	double integral;
 	double variance;
 	long numberTimesSampled;
+	bool enoughData;
 	
 public:
 	
 	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
+	virtual basisSlot* Clone() { return new basisSlot(*this);}
 	
 	virtual void initializeGramSchmidt();
 	
@@ -77,12 +79,14 @@ public:
 	void sample(double variable, double valueToSample);
 	bool addAnotherSlot(basisSlot* anotherSlot);
 	void combineWithSlot(basisSlot* anotherSlot);
-	void scale(double norm);
+	void scale(long norm);
 	
 	long getNumberTimesSampled() const {return numberTimesSampled;}
 	slotBounds getBounds() const {return bounds;}
 	
-	bool enoughSampled(int minNumberTimesSampled = 10) const;
+	void updateEnoughSampled(int minNumberTimesSampled = 10);
+	bool enoughSampled() const {return enoughData;}
+	
 	double sampledIntegral() const;
 	double sampledIntegralVariance() const;
 	double sampledIntegralError() const;
@@ -106,6 +110,7 @@ private:
 public:
 	
 	taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
+	taylorSlot* Clone() { return new taylorSlot(*this);}
 	
 	void initializeGramSchmidt();
 	

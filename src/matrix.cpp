@@ -24,11 +24,6 @@ void spline::setSpline(vector< double > theCoefficients, vector< double > theErr
 	degreesOfFreedom=theDOF;
 }
 
-vector< double > spline::getCoefficients() const
-{
-return splineCoefficients;
-}
-
 double spline::goodnessOfFitQ() const
 {
 	return gsl_sf_gamma_inc_Q (double(degreesOfFreedom)/2., chiSquared/2.);
@@ -59,6 +54,7 @@ double spline::splineError(double variable) const{
 		result+=splineErrorCoefficients[i]*currentVariablePower;
 		currentVariablePower*=variable;
 		}
+	if(result<0) result=0;
 	return sqrt(result);
 	
 }
@@ -68,7 +64,7 @@ double spline::splineIntegral(slotBounds theBounds) const{
 	
 	//think about what to do when out of bounds: error probably not warranted; might return zero or actual spline value
 	double result=0;
-	for(unsigned int i=0;i<2*splineOrder-1;i++)
+	for(unsigned int i=0;i<splineOrder;i++)
 	{
 		result+=splineCoefficients[i]*splineBasisFunction(theBounds, i);
 	}
@@ -113,7 +109,7 @@ totalDegreesOfFreedom=theTotalDOF;
 
 spline* splineArray::getSpline(unsigned int whichSpline) const
 {
-if(whichSpline>=splines.size()) {cout << "ERROR in getSpline, " << whichSpline << " does not exist" << endl; exit(EXIT_FAILURE);}
+if(whichSpline>=splines.size()) {cout << "ERROR in getSpline, spline number " << whichSpline << " does not exist" << endl; exit(EXIT_FAILURE);}
 return splines[whichSpline];
 }
 
@@ -187,6 +183,18 @@ double* binomialMatrix(int vectorSize)
 return matrix;
 }
 
+double* binomialVector(int vectorSize)
+{
+	double* vector = new double[vectorSize];
+	vector[0]=1;
+	for(int k=1;k<vectorSize;k++)
+		{
+		vector[k]=vector[k-1]*(vectorSize-k)/double(k);
+		}
+		
+	return vector;
+}
+
 void solveLinearEquation(double* matrix, double* vec, unsigned int vectorSize)
 {
 	gsl_matrix_view m = gsl_matrix_view_array (matrix, vectorSize, vectorSize);
@@ -205,16 +213,16 @@ void solveLinearEquation(double* matrix, double* vec, unsigned int vectorSize)
 	gsl_vector_free (x); 
 }
 
-double solveSVD(gsl_matrix * U, gsl_matrix * V, gsl_vector* b, gsl_vector* diagonal, gsl_vector* x)
+double solveSVD(gsl_matrix * A, gsl_matrix * V, gsl_vector* b, gsl_vector* diagonal, gsl_vector* x)
 	{
-	unsigned int matrixRows = U->size1;
-	unsigned int matrixCols = U->size2;
+	unsigned int matrixRows = A->size1;
+	unsigned int matrixCols = A->size2;
 
 	gsl_matrix * helper = gsl_matrix_alloc (matrixCols, matrixCols);
 	gsl_vector * work = gsl_vector_alloc (matrixCols);
 
-	gsl_matrix * A = gsl_matrix_alloc (matrixRows, matrixCols);
-	gsl_matrix_memcpy (A, U);
+	gsl_matrix * U = gsl_matrix_alloc (matrixRows, matrixCols);
+	gsl_matrix_memcpy (U, A);
 
 	//SVD, original matrix is replaced by U
 	if (matrixRows<10*matrixCols) gsl_linalg_SV_decomp (U, V, diagonal, work);		//Golub-Reinsch SVD algorithm
@@ -233,7 +241,7 @@ double solveSVD(gsl_matrix * U, gsl_matrix * V, gsl_vector* b, gsl_vector* diago
 	
 	gsl_linalg_SV_solve (U, V, diagonal, b, x);
 
-	//compute chi^2 as |Ax-b|^2
+	//compute chi^2 as |Ax-b|^2, b is replaced by Ax-b
 	gsl_blas_dgemv (CblasNoTrans, 1, A, x, -1, b);
 	double chisq;
 	gsl_blas_ddot (b, b, &chisq);
@@ -282,6 +290,31 @@ double* designMatrix(vector<basisSlot*> slotArray, unsigned int splineOrder){
 	
 }
 
+
+double* designMatrix(vector< vector<basisSlot*> > slotArray, unsigned int splineOrder){
+	
+	unsigned int numberOfSlots=0;	
+	for(unsigned int i=0;i<slotArray.size();i++) numberOfSlots+=slotArray[i].size();
+	double* matrix = new double[numberOfSlots*splineOrder];
+	
+	unsigned int counter=0;
+	for(unsigned int i=0;i<slotArray.size();i++)
+		for(unsigned int j=0;j<slotArray[i].size();j++)
+			{
+			double currentError=slotArray[i][j] -> sampledIntegralError();
+			for(unsigned int k=0;k<splineOrder;k++)
+				{
+				if( currentError < VERY_SMALL_NUMBER) matrix[counter*splineOrder+k]=0;
+				else matrix[counter*splineOrder+k]=splineBasisFunction(slotArray[i][j] -> getBounds(),k)/currentError/sqrt(double(slotArray[i].size()));
+				}
+			counter++;
+			}
+
+	return matrix;
+	
+}
+
+
 double* designMatrixProduct(double* matrix, unsigned int numberOfSlots, unsigned int splineOrder)
 {
 	gsl_matrix_view A = gsl_matrix_view_array (matrix, numberOfSlots, splineOrder);
@@ -303,12 +336,32 @@ double* designMatrixProduct(double* matrix, unsigned int numberOfSlots, unsigned
 }
 
 
-double* integralVector(std::vector< basisSlot* > slotArray){
-	
+double* integralVector(vector< basisSlot* > slotArray){
+
 	unsigned int numberOfSlots=slotArray.size();
 	double* vec = new double[numberOfSlots];
 	
 	for(unsigned int i=0;i<numberOfSlots;i++) vec[i]=(slotArray[i] -> sampledIntegral())/(slotArray[i] -> sampledIntegralError());
+	
+	return vec;
+}
+
+double* integralVector(vector< vector<basisSlot*> > slotArray){
+
+	unsigned int numberOfSlots=0;	
+	for(unsigned int i=0;i<slotArray.size();i++) numberOfSlots+=slotArray[i].size();
+	double* vec = new double[numberOfSlots];
+	
+	unsigned int counter=0;
+	for(unsigned int i=0;i<slotArray.size();i++)
+		{
+		for(unsigned int j=0;j<slotArray[i].size();j++)
+			{
+			if( (slotArray[i][j] -> sampledIntegralError()) < VERY_SMALL_NUMBER) vec[counter]=0;
+			else vec[counter]=(slotArray[i][j] -> sampledIntegral())/(slotArray[i][j] -> sampledIntegralError())/sqrt(double(slotArray[i].size()));
+			counter++;
+			}
+		}
 	
 	return vec;
 }
