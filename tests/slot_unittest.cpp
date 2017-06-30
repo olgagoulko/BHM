@@ -33,6 +33,9 @@ static void test_basisSlot()
 	sput_fail_unless(myTestBounds.overlapping(bound3)==true, "same in reverse order");
 	sput_fail_unless(bound4.overlapping(myTestBounds)==true, "[0.5,1.5) and [1,2) slots overlap");
 	sput_fail_unless(myTestBounds.overlapping(bound4)==true, "same in reverse order");
+	slotBounds bound4b(1.5-ACCURACY/2.,2.5);
+	sput_fail_unless(bound4.overlapping(bound4b)==false, "adjacent slots within numerical accuracy do not overlap");
+	sput_fail_unless(bound4b.overlapping(bound4)==false, "same in reverse order");
 	}
 	
 static void test_taylorSlot()
@@ -75,7 +78,6 @@ static void test_taylorSlot()
 	
 	myTestSlot.updateEnoughSampled();
 	sput_fail_unless(myTestSlot.enoughSampled()==false, "sampled fewer than 10 times");
-	sput_fail_unless(myTestSlot.enoughSampled(1)==true, "sampled more than once");
 	
 	lowerBound=5.; upperBound=6.;
 	slotBounds myTestBounds2(lowerBound, upperBound);
@@ -90,7 +92,7 @@ static void test_taylorSlot()
 
 static void test_sampleFunction()
 	{
-	double lowerBound=3.2; double upperBound=3.8;
+	double lowerBound=3.2; double upperBound=3.8; double intervalSize=upperBound-lowerBound;
 	slotBounds myTestBounds(lowerBound, upperBound);
 	int myTestNumberOfBasisFn=4;
 	taylorSlot myTestSlot(myTestBounds, myTestNumberOfBasisFn);
@@ -98,8 +100,8 @@ static void test_sampleFunction()
 	double stepWidth=0.001; double variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
 		{
-		myTestSlot.sample(variable,cos(variable));
-		totalSlot.sample(variable,cos(variable));
+		myTestSlot.sample(variable,cos(variable)*intervalSize);
+		totalSlot.sample(variable,cos(variable)*intervalSize);
 		variable+=stepWidth;
 		}
 	sput_fail_unless(myTestSlot.getNumberTimesSampled() == 600,"sampled 600 times");
@@ -115,8 +117,8 @@ static void test_sampleFunction()
 	stepWidth=0.01; variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
 		{
-		anotherSlot.sample(variable,cos(variable));
-		totalSlot.sample(variable,cos(variable));
+		anotherSlot.sample(variable,cos(variable)*intervalSize);
+		totalSlot.sample(variable,cos(variable)*intervalSize);
 		variable+=stepWidth;
 		}
 	sput_fail_unless(anotherSlot.getNumberTimesSampled() == 60,"other slot sampled 60 times");
@@ -136,7 +138,7 @@ static void test_sampleFunction()
 	stepWidth=0.001; variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
 		{
-		noBasisSlot.sample(variable,cos(variable));
+		noBasisSlot.sample(variable,cos(variable)*intervalSize);
 		variable+=stepWidth;
 		}
 	sput_fail_unless(noBasisSlot.getNumberTimesSampled() == 600,"no basis slot sampled 600 times");

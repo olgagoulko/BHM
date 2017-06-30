@@ -20,33 +20,24 @@ static void test_histogram()
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(-1.).first  == 4.5, "4.5 in excess bin");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(6.).first  == 4.5, "4.5 in excess bin");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(10.).first  == 4.5, "4.5 in excess bin");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0).first, 32.), "value at zero");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0).first, 2192./15.), "value at zero"); 
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(2.5).first == 0, "0 at 2.5 where not sampled");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(4.88).first == 0, "0 at 4.88 where not sampled");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(4.999999999999).first == 0, "0 just below 5.0 where not sampled");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.55).first,8321./1250.), "value at 0.55");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.52).first,1028866./156250.), "value at 0.52");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.2).first,-48641./84375.), "value at 0.2");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.23).first,-87190663./675000000.), "value at 0.23");
-	
-	//due to numerical precision (last digit) testing at slot boundaries is impossible --> this will never matter in real life
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.900000000000001).first,7168./1250.), "value at 3.9");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95).first,12352./1250.), "value at 3.95");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4).first,6816./250.), "value at 4");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.55).first,16642./1250.), "value at 0.55");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(0.52).first,2057732./156250.), "value at 0.52");
 	
 	myTestHistogram.sample(4,-0.4);
 	myTestHistogram.sample(4.23,1.1);
 
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.65).first,-4209./31250./2.), "value at 3.65");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95).first,28932827./3906250./2.), "value at 3.95");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95).second,sqrt(4893669436322603./2.)/23437500./2.), "error at 3.95");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueWeightedAverage(3.95).first,8.504782282449135/2.), "weighted average value at 3.95"); 
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueWeightedAverage(3.95).second,3.310039266235157/2.), "weighted average error at 3.95");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4).first,70335263./3906250./2.), "value at 4");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.16).first,189704957./244140625./2.), "value at 4.16");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.23).first,3577765089./976562500./2.), "value at 4.23");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.300000000000001).first,11706064./5859375./2.), "value at 4.3");
-	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.44).first,-97984339./1464843750./2.), "value at 4.44");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.65).first,-4209./31250.), "value at 3.65");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95).first,28932827./3906250.), "value at 3.95");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(3.95).second,sqrt(4893669436322603./2.)/23437500.), "error at 3.95");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueWeightedAverage(3.95).first,8.504782282449135), "weighted average value at 3.95"); 
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueWeightedAverage(3.95).second,3.310039266235157), "weighted average error at 3.95");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4).first,70335263./3906250.), "value at 4");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.16).first,189704957./244140625.), "value at 4.16");
+	sput_fail_unless(isAround(myTestHistogram.sampledFunctionValueAverage(4.23).first,3577765089./976562500.), "value at 4.23");
 	
 	numberOverlaps=1; totalNumOfBasisFn=2;
 	vector<basisSlot*> histogramVector2=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
@@ -56,8 +47,8 @@ static void test_histogram()
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(0.4).first == 0, "0 at 0.4 where not sampled");
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(1.1).first == 0, "0 at 1.1 where not sampled");
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(1.1).second == 0, "error 0 where not sampled");
-	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.5).first,402./50.), "value at 0.5");
-	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.9).first,-6./250.), "value at 0.9");
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.5).first,804./50.), "value at 0.5");
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.9).first,-12./250.), "value at 0.9");
 
 }
 
@@ -82,7 +73,7 @@ static void test_combinedSlot()
 	double stepWidth=0.001; double variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
 	{
-		myTestHistogram.sample(variable,cos(variable));
+		myTestHistogram.sample(variable,cos(variable)*(upperBound-lowerBound));
 		variable+=stepWidth;
 	}
 	

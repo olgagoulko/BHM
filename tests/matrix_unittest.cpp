@@ -59,7 +59,7 @@ static void test_matrix()
 
 static void test_chisq()
 {
-	double lowerBound=1.; double upperBound=3.;
+	double lowerBound=1.; double upperBound=4.2;
 	slotBounds myTestBounds(lowerBound, upperBound);
 	unsigned int defaultSplineOrder=4;
 	
@@ -69,30 +69,30 @@ static void test_chisq()
 	
 	double stepWidth=0.001; double variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
-	{
+		{
 		myTestHistogram.sample(variable,1 - 3*variable/2. + 2*variable*variable - variable*variable*variable/2.);
 		variable+=stepWidth;
-	}
-	
+		}
+
 	vector<basisSlot*> allAnalysisSlots;
 	allAnalysisSlots.push_back(myTestHistogram.combinedSlot(0,19));
 	for(unsigned int i=0;i<2;i++) {allAnalysisSlots.push_back(myTestHistogram.combinedSlot(10*i,10*i+9));}
 	for(unsigned int i=0;i<4;i++) {allAnalysisSlots.push_back(myTestHistogram.combinedSlot(5*i,5*i+4));}
 	
 	sput_fail_unless(isAround(allAnalysisSlots[1] -> sampledIntegral(),24666667./16000000.), "check value of one of the combined slots");
-	sput_fail_unless(isAround( (allAnalysisSlots[4] -> sampledIntegralError()) ,sqrt(8488771217029311.)/32000000000.), "check error of one of the combined slots");
-	
+	sput_fail_unless(isAround( (allAnalysisSlots[4] -> sampledIntegralError()) ,sqrt(8488771217029311.)/16000000000.), "check error of one of the combined slots");
+
 	double* myDesignMatrix=designMatrix(allAnalysisSlots, defaultSplineOrder);
-	sput_fail_unless(isAround(myDesignMatrix[0],16000000000./(3.*sqrt(1535863353193979))), "check design matrix element");
-	sput_fail_unless(isAround(myDesignMatrix[23],61500000000*sqrt(3./157587733676437.)), "check design matrix element");
-	
+	sput_fail_unless(isAround(myDesignMatrix[0],32000000000./(3.*sqrt(1535863353193979))), "check design matrix element");
+	sput_fail_unless(isAround(myDesignMatrix[23],30750000000*sqrt(3./157587733676437.)), "check design matrix element");
+
 	double* matrixProduct=designMatrixProduct(myDesignMatrix, allAnalysisSlots.size(), defaultSplineOrder);
-	sput_fail_unless(isAround(matrixProduct[7],15645544.081191506), "check A^T A element");
-	sput_fail_unless(isAround(matrixProduct[13],15645544.081191506), "check A^T A element");
-	
+	sput_fail_unless(isAround(matrixProduct[7],5675789.13893), "check A^T A element");
+	sput_fail_unless(isAround(matrixProduct[13],5675789.13893), "check A^T A element");
+
 	double* bvec = integralVector(allAnalysisSlots);
 	double* vectorProduct=integralVectorProduct(myDesignMatrix, bvec, allAnalysisSlots.size(), defaultSplineOrder);
-	sput_fail_unless(isAround(vectorProduct[2],6157644.222272173), "check A^T b element");
+	sput_fail_unless(isAround(vectorProduct[2],3360322.181223839), "check A^T b element");
 		
 	//gsl example
 	double a_data[] = { 0.18, 0.60, 0.57, 0.96,
@@ -103,41 +103,19 @@ static void test_chisq()
 	solveLinearEquation(a_data, b_data, 4);
 	sput_fail_unless(isAround(b_data[0],-4.05205,0.00001)&&isAround(b_data[3],8.69377,0.00001), "linear equation solver");
 	
-	solveLinearEquation(matrixProduct, vectorProduct, 4);
-	sput_fail_unless(isAround(vectorProduct[0],1,0.00001)&&isAround(vectorProduct[3],-0.5,0.00001), "linear equation solver");
-
-	histogramBasis myAnalysisHistogram(allAnalysisSlots);
-	spline roughSpline=myAnalysisHistogram.oneSplineFit(defaultSplineOrder);
+	//write proper BHM test for regular kind of sampling
+	/*vector< double > dummy; vector<slotBounds> testBoundsVector; testBoundsVector.push_back(myTestBounds);
+	vector< vector< basisSlot* > > currentAnalysisBins=myTestHistogram.binHierarchy(3200);// currentAnalysisBins.push_back(allAnalysisSlots);
+	splineArray roughSpline=matchedSplineFit(currentAnalysisBins, testBoundsVector, defaultSplineOrder, 0, dummy, dummy);
+	cout << roughSpline.splineValue(1) << '\t' << roughSpline.splineValue(2) << endl;
 	sput_fail_unless(isAround(roughSpline.splineValue(1.),0.999999958333), "check spline value at 1");
 	sput_fail_unless(isAround(roughSpline.splineValue(2.),2.00000008333), "check spline value at 2");
 	sput_fail_unless(isAround(roughSpline.splineValue(3.),1.00000020833), "check spline value at 3");
 	sput_fail_unless(isAround(roughSpline.splineError(1.),0.0189717548741), "check spline error at 1");
 	sput_fail_unless(isAround(roughSpline.splineError(2.),0.00354588503348), "check spline error at 2");
 	sput_fail_unless(isAround(roughSpline.splineError(3.),0.0214103328672), "check spline error at 3");
-	sput_fail_unless(isAround(roughSpline.getChisquared(),0), "check spline chi^2");
+	sput_fail_unless(isAround(roughSpline.getChisquared(),0), "check spline chi^2");*/
 	
-	vector<unsigned int> intervalBoundaries;
-	intervalBoundaries.push_back(6); intervalBoundaries.push_back(12);
-	splineArray theFit = myTestHistogram.splineFit(intervalBoundaries, 0, defaultSplineOrder);
-	
-	vector<basisSlot*> compareSlots1; vector<basisSlot*> compareSlots2;
-	for(unsigned int i=0;i<intervalBoundaries[0];i++) {compareSlots1.push_back(myTestHistogram.getSlot(i));}
-	for(unsigned int i=intervalBoundaries[1];i<20;i++) {compareSlots2.push_back(myTestHistogram.getSlot(i));}
-	histogramBasis cfHistogram1(compareSlots1); histogramBasis cfHistogram2(compareSlots2);
-	spline spline1=cfHistogram1.oneSplineFit(defaultSplineOrder);
-	spline spline2=cfHistogram2.oneSplineFit(defaultSplineOrder);
-	
-	sput_fail_unless(isAround(theFit.splineValue(1.),spline1.splineValue(1.)), "compare combined and individual splines at 1");
-	sput_fail_unless(isAround(theFit.splineValue(1.1),spline1.splineValue(1.1)), "compare combined and individual splines at 1.1");
-	sput_fail_unless(isAround(theFit.splineValue(1.123),spline1.splineValue(1.123)), "compare combined and individual splines at 1.123");
-	sput_fail_unless(isAround(theFit.splineError(1.),spline1.splineError(1.)), "compare combined and individual spline errors at 1");
-	sput_fail_unless(isAround(theFit.splineError(1.1),spline1.splineError(1.1)), "compare combined and individual spline errors at 1.1");
-	sput_fail_unless(isAround(theFit.splineError(1.123),spline1.splineError(1.123)), "compare combined and individual spline errors at 1.123");
-	sput_fail_unless(isAround(theFit.splineValue(2.75),spline2.splineValue(2.75)), "compare combined and individual splines at 2.75");
-	sput_fail_unless(isAround(theFit.splineValue(3.),spline2.splineValue(3.)), "compare combined and individual splines at 3");
-	sput_fail_unless(isAround(theFit.splineError(2.75),spline2.splineError(2.75),1e-8), "compare combined and individual spline errors at 2.75");
-	sput_fail_unless(isAround(theFit.splineError(3.),spline2.splineError(3.)), "compare combined and individual spline errors at 3");
-
 	double a_tonullify[]= {6.881737852316666e9, 1.804944376798533e8, -3.987145745998773e7, 6.611225244750259e8, 2.812625188625582e8,
 		1.863234860715052e8, 4.947682846340233e6, -1.0813733676412262e6, 1.7904516220312424e7, 7.610831122786341e6,
 		-9.293121263062338e8, -2.4406545147881947e7, 5.385261254688273e6, -8.928065050991334e7, -3.797944454921767e7,

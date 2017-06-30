@@ -72,6 +72,20 @@ double spline::splineIntegral(slotBounds theBounds) const{
 	
 }
 
+double spline::splineDerivative(double variable, unsigned int derivativeOrder) const{
+	
+double result=0;
+double currentVariablePower=1.;
+for(unsigned int i=derivativeOrder;i<splineOrder;i++)
+	{
+	int powerCoeff=1; unsigned int j=i; for(unsigned int k=0;k<derivativeOrder;k++) {powerCoeff*=j;j--;}
+	result+=splineCoefficients[i]*currentVariablePower*powerCoeff;
+	currentVariablePower*=variable;
+	}
+return result;
+}
+
+
 void spline::printSpline() const
 {
 	bounds.printBoundsInfo();
@@ -84,14 +98,27 @@ void spline::printSpline() const
 	cout << endl;
 }
 
+splineArray::splineArray()
+{
+	lowerBound=0;
+	upperBound=0;
+	splineOrder=4;
+	splines.resize(0);
+	intervalBoundaries.resize(0);
+	totalChiSquared=0; levelsChiSquared.resize(0);
+	totalDegreesOfFreedom=0; levelsDegreesOfFreedom.resize(0);
+	accetableSpline=false;
+}
+
 splineArray::splineArray(vector< spline* > theSplines)
 {
 	
 	lowerBound=(theSplines[0] -> getBounds()).getLowerBound();
 	upperBound=(theSplines[theSplines.size()-1] -> getBounds()).getUpperBound();
 	splineOrder=(theSplines[0] -> getSplineOrder()); //should maybe be total of parameters
-	totalChiSquared=0;
-	totalDegreesOfFreedom=0;
+	totalChiSquared=0; levelsChiSquared.resize(0);
+	totalDegreesOfFreedom=0; levelsDegreesOfFreedom.resize(0);
+	accetableSpline=false;
 	splines.push_back(theSplines[0]);
 	for(unsigned int i=1;i<theSplines.size();i++)
 	{
@@ -107,6 +134,21 @@ totalChiSquared=theTotalChisq;
 totalDegreesOfFreedom=theTotalDOF;
 }
 
+void splineArray::updateLevelProperties(std::vector<double> theChisq, std::vector<int> theDOF)
+{
+	for(unsigned int i=0;i<theChisq.size();i++)
+		{
+		levelsChiSquared.push_back(theChisq[i]);
+		levelsDegreesOfFreedom.push_back(theDOF[i]);
+		}
+}
+
+void splineArray::updateGoodness(bool acceptable)
+{
+accetableSpline=acceptable;
+}
+
+
 spline* splineArray::getSpline(unsigned int whichSpline) const
 {
 if(whichSpline>=splines.size()) {cout << "ERROR in getSpline, spline number " << whichSpline << " does not exist" << endl; exit(EXIT_FAILURE);}
@@ -116,6 +158,25 @@ return splines[whichSpline];
 double splineArray::goodnessOfFitQ() const
 {
 	return gsl_sf_gamma_inc_Q (double(totalDegreesOfFreedom)/2., totalChiSquared/2.);
+}
+
+bool splineArray::checkOverallAcceptance(double fitAcceptanceThreshold) const
+{
+	bool overallAcceptance=true;
+	if( levelsChiSquared.size()==0 ) {if(goodnessOfFitQ()<fitAcceptanceThreshold) overallAcceptance=false;}
+	else
+		{
+		for(unsigned int i=0;i<levelsChiSquared.size();i++)
+			if( (levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))>fitAcceptanceThreshold ) overallAcceptance=false;
+		}
+	return overallAcceptance;
+}
+
+vector< slotBounds > splineArray::getBounds() const
+{
+vector<slotBounds> theBounds;
+for(unsigned int i=0;i<splines.size();i++) theBounds.push_back(splines[i] -> getBounds());
+return theBounds;
 }
 
 
@@ -141,12 +202,32 @@ double splineArray::splineError(double variable) const
 	return result;
 }
 
+double splineArray::splineDerivative(double variable, unsigned int derivativeOrder) const
+{
+	bool foundSpline; double result;
+	for(unsigned int i=0;i<splines.size();i++)
+	{
+		foundSpline=(splines[i] -> getBounds()).checkIfInBounds(variable);
+		if(foundSpline) {result = (splines[i] -> splineDerivative(variable,derivativeOrder)); break;}
+	}
+	return result;
+}
+
 void splineArray::printSplineArrayInfo() const
 {
 	cout << "Lower Bound: " << lowerBound << endl;
 	cout << "Upper Bound: " << upperBound << endl;
-	cout << left << setw(12) << "spline order" << '\t' << setw(12) << "chi^2" << '\t'  << setw(12) << "dof" << '\t' << setw(12) << "chi^2/dof" << '\t' << setw(12) << "goodness of fit Q" << endl;
-	cout << left << setw(12) << setprecision(10) << splineOrder << '\t' << setw(12) << totalChiSquared << '\t' << setw(12) << totalDegreesOfFreedom << '\t' << setw(12) << getChisquared() << '\t' << setw(12) << goodnessOfFitQ() << endl;
+	cout << "Spline order: " << splineOrder << endl;
+	if(levelsChiSquared.size()==0)
+		{
+		cout << left << setw(12) << "chi^2" << '\t'  << setw(12) << "dof" << '\t' << setw(12) << "chi^2/dof" << '\t' << setw(12) << "goodness of fit Q" << endl;
+		cout << left << setw(12) << setprecision(10) <<  totalChiSquared << '\t' << setw(12) << totalDegreesOfFreedom << '\t' << setw(12) << getChisquared() << '\t' << setw(12) << goodnessOfFitQ() << endl;
+		}
+	else {
+		cout << left << setw(4) << "level" << '\t' << setw(8) << "n" << '\t'  << setw(12) << "chi_n^2/n" << '\t' << setw(12) << "sqrt(2/n)" << '\t' << setw(12) << "deviation in sqrt(2/n) units" << endl;
+		for(unsigned int i=0;i<levelsChiSquared.size();i++)
+			cout << left << setw(4) << setprecision(10) << i << '\t' << setw(8) <<  levelsDegreesOfFreedom[i] << '\t' << setw(12) << levelsChiSquared[i] << '\t' << setw(12) << sqrt(2./double(levelsDegreesOfFreedom[i])) << '\t' << setw(12) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
+		}
 }
 
 void splineArray::printSplines() const
@@ -297,18 +378,22 @@ double* designMatrix(vector< vector<basisSlot*> > slotArray, unsigned int spline
 	for(unsigned int i=0;i<slotArray.size();i++) numberOfSlots+=slotArray[i].size();
 	double* matrix = new double[numberOfSlots*splineOrder];
 	
-	unsigned int counter=0;
+	unsigned int counter=0; double weightFactor;
 	for(unsigned int i=0;i<slotArray.size();i++)
+		{
+		//weightFactor=sqrt(double(slotArray[i].size());
+		weightFactor=sqrt(double(pow(2,i)));
 		for(unsigned int j=0;j<slotArray[i].size();j++)
 			{
 			double currentError=slotArray[i][j] -> sampledIntegralError();
 			for(unsigned int k=0;k<splineOrder;k++)
 				{
 				if( currentError < VERY_SMALL_NUMBER) matrix[counter*splineOrder+k]=0;
-				else matrix[counter*splineOrder+k]=splineBasisFunction(slotArray[i][j] -> getBounds(),k)/currentError/sqrt(double(slotArray[i].size()));
+				else matrix[counter*splineOrder+k]=splineBasisFunction(slotArray[i][j] -> getBounds(),k)/currentError/weightFactor;
 				}
 			counter++;
 			}
+		}
 
 	return matrix;
 	
@@ -352,13 +437,15 @@ double* integralVector(vector< vector<basisSlot*> > slotArray){
 	for(unsigned int i=0;i<slotArray.size();i++) numberOfSlots+=slotArray[i].size();
 	double* vec = new double[numberOfSlots];
 	
-	unsigned int counter=0;
+	unsigned int counter=0; double weightFactor;
 	for(unsigned int i=0;i<slotArray.size();i++)
 		{
+		//weightFactor=sqrt(double(slotArray[i].size());
+		weightFactor=sqrt(double(pow(2,i)));
 		for(unsigned int j=0;j<slotArray[i].size();j++)
 			{
 			if( (slotArray[i][j] -> sampledIntegralError()) < VERY_SMALL_NUMBER) vec[counter]=0;
-			else vec[counter]=(slotArray[i][j] -> sampledIntegral())/(slotArray[i][j] -> sampledIntegralError())/sqrt(double(slotArray[i].size()));
+			else vec[counter]=(slotArray[i][j] -> sampledIntegral())/(slotArray[i][j] -> sampledIntegralError())/weightFactor;
 			counter++;
 			}
 		}
@@ -381,6 +468,35 @@ double* integralVectorProduct(double* matrix, double* vec, unsigned int numberOf
 	
 }
 
+bool isDataConsistentWithZero(vector< vector< basisSlot* > > slotArray)
+{
+	bool consistentWithZero=true; unsigned int slotCounter; double zeroChiSqVec; int consistentWithZeroCounter=0;
+	for(unsigned int j=0;j<slotArray.size();j++)
+	{
+		slotCounter=0;
+		zeroChiSqVec=0;
+		for(unsigned int i=0;i<slotArray[j].size();i++)
+		{
+			basisSlot* currentSlot = slotArray[j][i];
+			double currentError=currentSlot -> sampledIntegralError();
+			if( (currentSlot -> enoughSampled()) && (currentError > VERY_SMALL_NUMBER))
+			{
+				zeroChiSqVec+=(currentSlot -> sampledIntegral())*(currentSlot -> sampledIntegral())/currentError/currentError;
+				slotCounter++;
+			}
+		}
+		if(2*slotCounter>slotArray[j].size())
+		{
+			zeroChiSqVec=zeroChiSqVec/double(slotCounter);
+			double deviation=(zeroChiSqVec-1)/sqrt(2./double(slotCounter));
+			if(deviation>4) consistentWithZero=false;
+			else if(deviation>3) consistentWithZeroCounter+=4;
+			else if(deviation>2) consistentWithZeroCounter+=2;
+		}
+	}
+	if(consistentWithZeroCounter>=8) consistentWithZero=false;
+	return consistentWithZero;
+}
 
 
 

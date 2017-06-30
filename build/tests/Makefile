@@ -153,29 +153,29 @@ test/fast:
 	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/build
 .PHONY : test/fast
 
-main1d_test.o: main1d_test.cpp.o
-.PHONY : main1d_test.o
+divergence_test.o: divergence_test.cpp.o
+.PHONY : divergence_test.o
 
 # target to build an object file
-main1d_test.cpp.o:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/main1d_test.cpp.o
-.PHONY : main1d_test.cpp.o
+divergence_test.cpp.o:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/divergence_test.cpp.o
+.PHONY : divergence_test.cpp.o
 
-main1d_test.i: main1d_test.cpp.i
-.PHONY : main1d_test.i
+divergence_test.i: divergence_test.cpp.i
+.PHONY : divergence_test.i
 
 # target to preprocess a source file
-main1d_test.cpp.i:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/main1d_test.cpp.i
-.PHONY : main1d_test.cpp.i
+divergence_test.cpp.i:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/divergence_test.cpp.i
+.PHONY : divergence_test.cpp.i
 
-main1d_test.s: main1d_test.cpp.s
-.PHONY : main1d_test.s
+divergence_test.s: divergence_test.cpp.s
+.PHONY : divergence_test.s
 
 # target to generate assembly for a file
-main1d_test.cpp.s:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/main1d_test.cpp.s
-.PHONY : main1d_test.cpp.s
+divergence_test.cpp.s:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/divergence_test.cpp.s
+.PHONY : divergence_test.cpp.s
 
 # Help Target
 help:
@@ -190,9 +190,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... main1d_test.o"
-	@echo "... main1d_test.i"
-	@echo "... main1d_test.s"
+	@echo "... divergence_test.o"
+	@echo "... divergence_test.i"
+	@echo "... divergence_test.s"
 .PHONY : help
 
 

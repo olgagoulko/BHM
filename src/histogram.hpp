@@ -32,16 +32,12 @@ public:
 	std::pair<double,double> sampledFunctionValueWeightedAverage(double variable) const;
 	
 	histogramBasis scaledHistogram(long norm);
+	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
-	spline oneSplineFit(unsigned int splineOrder = 4);
-	splineArray splineFit(std::vector<unsigned int> intervalBoundaries, double gluingFactor, unsigned int splineOrder = 4);
-	splineArray matchedSplineFitSmallBins(std::vector<unsigned int> intervalBoundaries, unsigned int splineOrder = 4);
-	splineArray splineProcedureSmallBins(unsigned int splineOrder, unsigned int minNumberBins, double fitAcceptanceThreshold);
-	splineArray splineProcedure(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold);
-	splineArray splineProcedureOverlap(unsigned int splineOrder, long int norm, double fitAcceptanceThreshold);
+	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm);
+	splineArray splineProcedure(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double gluingFactor);
 };
 
-splineArray matchedSplineFit(std::vector< std::vector<basisSlot*> > currentAnalysisBins, std::vector<slotBounds> intervalBounds, unsigned int splineOrder = 4);
-splineArray matchedSplineFitOverlap(std::vector< std::vector<basisSlot*> > currentAnalysisBins, std::vector<slotBounds> intervalBounds, unsigned int splineOrder = 4);
+splineArray matchedSplineFit(std::vector< std::vector< basisSlot* > > currentAnalysisBins, std::vector< slotBounds > intervalBounds, unsigned int splineOrder, double gluingFactor, std::vector< double > a3array, std::vector< double > chisqArray);
 
 #endif

@@ -34,6 +34,7 @@ public:
 	double splineValue(double variable) const;
 	double splineError(double variable) const;
 	double splineIntegral(slotBounds theBounds) const;
+	double splineDerivative(double variable, unsigned int derivativeOrder) const;
 	
 	void printSpline() const;
 	
@@ -50,19 +51,30 @@ private:
 	std::vector<spline*> splines;
 	std::vector<double> intervalBoundaries;
 	double totalChiSquared;
+	std::vector<double> levelsChiSquared;
 	int totalDegreesOfFreedom;
+	std::vector<int> levelsDegreesOfFreedom;
+	bool accetableSpline;
 	
 public:
 	
+	splineArray();
 	splineArray(std::vector< spline* > theSplines);
 	void updateProperties(double theTotalChisq, int theTotalDOF);
+	void updateLevelProperties(std::vector<double> theChisq, std::vector<int> theDOF);
+	void updateGoodness(bool acceptable);
 	
 	spline * getSpline(unsigned int whichSpline) const;
 	double getChisquared() const {return totalChiSquared/double(totalDegreesOfFreedom);}
 	double goodnessOfFitQ() const;
+	bool getAcceptance() const {return accetableSpline;}
+	bool checkOverallAcceptance(double fitAcceptanceThreshold) const;
+	std::vector<slotBounds> getBounds() const;
+	int numberKnots() const {return intervalBoundaries.size();}
 	
 	double splineValue(double variable) const;
 	double splineError(double variable) const;
+	double splineDerivative(double variable, unsigned int derivativeOrder) const;
 	
 	void printSplineArrayInfo() const;
 	void printSplines() const;
@@ -87,7 +99,7 @@ double* integralVector(std::vector< basisSlot* > slotArray);
 double* integralVector(std::vector< std::vector< basisSlot*> > slotArray);
 double* integralVectorProduct(double* matrix, double* vec, unsigned int numberOfSlots, unsigned int splineOrder);
 
-
+bool isDataConsistentWithZero(std::vector< std::vector<basisSlot*> > slotArray);
 
 
 #endif

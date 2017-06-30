@@ -10,12 +10,12 @@ static void test_isAround()
 	sput_fail_unless(isAround(1.6e121,1.6e121)  == true, "1.6e121 == 1.6e121");
 	sput_fail_unless(isAround(0.,0.)  == true, "0 == 0");
 	sput_fail_unless(isAround(-1.,-1.)  == true, "-1 == -1");
-	sput_fail_unless(isAround(1.+0.9999*VERY_SMALL_NUMBER,1.)  == true, "1+EPS == 1");
+	sput_fail_unless(isAround(1.+0.9999*ACCURACY,1.)  == true, "1+EPS == 1");
 	
 	sput_fail_unless(isAround(1.,2.)  == false, "1 != 2");
 	sput_fail_unless(isAround(1.,-1.)  == false, "1 != -1");
-	sput_fail_unless(isAround(1.,1.+2*VERY_SMALL_NUMBER)  == false, "1 != 1+2EPS");
-	sput_fail_unless(isAround(1.+2*VERY_SMALL_NUMBER,1.)  == false, "1+2EPS != 1");
+	sput_fail_unless(isAround(1.,1.+2*ACCURACY)  == false, "1 != 1+2EPS");
+	sput_fail_unless(isAround(1.+2*ACCURACY,1.)  == false, "1+2EPS != 1");
 	sput_fail_unless(isAround(1.,0.)  == false, "1 != 0");
 	sput_fail_unless(isAround(0.,1.)  == false, "0 != 1");
 }

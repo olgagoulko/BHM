@@ -68,7 +68,7 @@ slot.hpp
 basic.hpp
 ../tests/../src/basic.hpp
 
-/home/olga/Documents/sampling/tests/main1d_test.cpp
+/home/olga/Documents/sampling/tests/divergence_test.cpp
 histogram.hpp
 /home/olga/Documents/sampling/tests/histogram.hpp
 matrix.hpp

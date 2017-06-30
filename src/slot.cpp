@@ -144,26 +144,29 @@ void basisSlot::sample(double variable, double valueToSample)
     else {cout << "ERROR: trying to sample in the wrong slot" << endl; exit(EXIT_FAILURE);}
 }
 
-bool basisSlot::addAnotherSlot(basisSlot* anotherSlot)
+bool basisSlot::addAnotherSlot(basisSlot* anotherSlot, int sign)
 {
     bool addable=false;
-    if( (totalNumOfBasisFn==(anotherSlot -> totalNumOfBasisFn)) && (bounds==(anotherSlot -> bounds)))
+    if( (totalNumOfBasisFn==(anotherSlot -> totalNumOfBasisFn)) && (bounds==(anotherSlot -> bounds)) && (numberTimesSampled+sign*(anotherSlot -> numberTimesSampled)>=0))
     {
 	addable=true;
-	long newNumberTimesSampled=numberTimesSampled+(anotherSlot -> numberTimesSampled);
-	double auxiliary=(integral-(anotherSlot -> integral)); auxiliary=auxiliary*auxiliary;
-	auxiliary*=numberTimesSampled*(anotherSlot -> numberTimesSampled);
-	integral=(integral*numberTimesSampled+(anotherSlot -> integral)*(anotherSlot -> numberTimesSampled))/double(newNumberTimesSampled);
-	variance+=(anotherSlot -> variance)+auxiliary/double(newNumberTimesSampled);
-	for(int j=0; j<totalNumOfBasisFn; j++)
+	long newNumberTimesSampled=numberTimesSampled+sign*(anotherSlot -> numberTimesSampled);
+	if(newNumberTimesSampled>0)
 		{
-		sampledCoeffsValues[j]*=numberTimesSampled;
-		sampledCoeffsValues[j]+=(anotherSlot -> sampledCoeffsValues)[j]*(anotherSlot -> numberTimesSampled);
-		sampledCoeffsValues[j]*=1./double(newNumberTimesSampled);
-	
-		auxiliary=sampledCoeffsValues[j]-(anotherSlot -> sampledCoeffsValues)[j]; auxiliary=auxiliary*auxiliary;
+		double auxiliary=(integral-(anotherSlot -> integral)); auxiliary=auxiliary*auxiliary;
 		auxiliary*=numberTimesSampled*(anotherSlot -> numberTimesSampled);
-		sampledCoeffsVariance[j]+=(anotherSlot -> sampledCoeffsVariance)[j]+auxiliary/double(newNumberTimesSampled);
+		integral=(integral*numberTimesSampled+sign*(anotherSlot -> integral)*(anotherSlot -> numberTimesSampled))/double(newNumberTimesSampled);
+		variance+=sign*(anotherSlot -> variance)+sign*auxiliary/double(newNumberTimesSampled);
+		for(int j=0; j<totalNumOfBasisFn; j++)
+			{
+			sampledCoeffsValues[j]*=numberTimesSampled;
+			sampledCoeffsValues[j]+=sign*(anotherSlot -> sampledCoeffsValues)[j]*(anotherSlot -> numberTimesSampled);
+			sampledCoeffsValues[j]*=1./double(newNumberTimesSampled);
+		
+			auxiliary=sampledCoeffsValues[j]-(anotherSlot -> sampledCoeffsValues)[j]; auxiliary=auxiliary*auxiliary;
+			auxiliary*=numberTimesSampled*(anotherSlot -> numberTimesSampled);
+			sampledCoeffsVariance[j]+=sign*(anotherSlot -> sampledCoeffsVariance)[j]+sign*auxiliary/double(newNumberTimesSampled);
+			}
 		}
 	numberTimesSampled=newNumberTimesSampled;
     }
@@ -343,6 +346,61 @@ double taylorSlot::pairwiseIntegral(int numOfBasisFn1, int numOfBasisFn2) const
 	int sumExp=numOfBasisFn1+numOfBasisFn2+1;
 	return (pow(bounds.getUpperBound(),sumExp)-pow(bounds.getLowerBound(),sumExp))/double(sumExp);
 }
+
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+sqrtSlot::sqrtSlot(slotBounds theBounds, int theTotalNumOfBasisFn) : basisSlot(theBounds, theTotalNumOfBasisFn)
+{
+	if(theBounds.getIsInfinite()==true) {cout << "ERROR: trying to initialize square root expansion slot with open bounds" << endl; exit(EXIT_FAILURE);}
+	initializeGramSchmidt();
+}
+
+
+double sqrtSlot::bareBasisFn(int numOfBasisFn, double variable) const
+{       
+	/* x^-1/2
+	 1                                   *
+	 x^1/2
+	 x
+	 x^3/2... */
+	//double result=1./sqrt(variable);
+	//result*=pow(sqrt(variable),numOfBasisFn);
+	
+	/* x^-1/2
+	 x^1/2
+	 x^3/2... */
+	double result=1./sqrt(variable);
+	result*=pow(variable,numOfBasisFn);
+	
+	return result;
+}
+
+
+double sqrtSlot::GramSchmidtBasisFn(int numOfBasisFn, double variable) const
+{
+	double result=0;
+	for(int j=0; j<=numOfBasisFn; j++)
+	{
+		result+=GramSchmidtCoeffs[numOfBasisFn][j]*bareBasisFn(j,variable);
+	}
+	return result;
+	
+}
+
+double sqrtSlot::weight(double variable) const
+{
+	return variable;
+}
+
+double sqrtSlot::pairwiseIntegral(int numOfBasisFn1, int numOfBasisFn2) const
+{
+	//double sumExp=double(numOfBasisFn1+numOfBasisFn2)/2.+1;
+	double sumExp=numOfBasisFn1+numOfBasisFn2+1;
+	return 1./sumExp*(pow(bounds.getUpperBound(),sumExp)-pow(bounds.getLowerBound(),sumExp));
+
+}
+
 
 
 

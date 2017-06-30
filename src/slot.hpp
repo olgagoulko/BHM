@@ -77,7 +77,7 @@ public:
 	virtual bool checkIfInBasisSlot(double variable) const {return bounds.checkIfInBounds(variable);}
 	
 	void sample(double variable, double valueToSample);
-	bool addAnotherSlot(basisSlot* anotherSlot);
+	bool addAnotherSlot(basisSlot* anotherSlot, int sign = 1);
 	void combineWithSlot(basisSlot* anotherSlot);
 	void scale(long norm);
 	
@@ -116,6 +116,22 @@ public:
 	
 	double GramSchmidtBasisFn(int numOfBasisFn, double variable) const;
 	double bareBasisFn(int numOfBasisFn, double variable) const;
+	double pairwiseIntegral(int numOfBasisFn1, int numOfBasisFn2) const;
+	
+};
+
+class sqrtSlot: public basisSlot {
+	
+private:
+	
+public:
+	
+	sqrtSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
+	sqrtSlot* Clone() { return new sqrtSlot(*this);}
+	
+	double GramSchmidtBasisFn(int numOfBasisFn, double variable) const;
+	double bareBasisFn(int numOfBasisFn, double variable) const;
+	double weight(double variable) const;
 	double pairwiseIntegral(int numOfBasisFn1, int numOfBasisFn2) const;
 	
 };

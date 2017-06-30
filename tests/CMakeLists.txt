@@ -16,7 +16,7 @@ include_directories(
     . .. ../src
     )
     
-add_executable(test main1d_test.cpp sput.h)
+add_executable(test divergence_test.cpp sput.h)
     
 target_link_libraries(test samplinglibrary ${GSL_LIBRARIES})
 
