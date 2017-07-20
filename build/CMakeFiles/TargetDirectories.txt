@@ -1,3 +1,0 @@
-/home/olga/Documents/sampling/build/src/CMakeFiles/main.dir
-/home/olga/Documents/sampling/build/src/CMakeFiles/samplinglibrary.dir
-/home/olga/Documents/sampling/build/tests/CMakeFiles/test.dir

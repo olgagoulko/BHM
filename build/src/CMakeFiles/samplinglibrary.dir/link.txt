@@ -1,2 +1,0 @@
-/usr/bin/ar cr libsamplinglibrary.a  CMakeFiles/samplinglibrary.dir/basic.cpp.o CMakeFiles/samplinglibrary.dir/spline.cpp.o CMakeFiles/samplinglibrary.dir/slot.cpp.o CMakeFiles/samplinglibrary.dir/histogram.cpp.o
-/usr/bin/ranlib libsamplinglibrary.a

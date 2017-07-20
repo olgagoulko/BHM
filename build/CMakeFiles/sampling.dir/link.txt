@@ -1,1 +1,0 @@
-g++   -g -Wall    CMakeFiles/sampling.dir/main.cpp.o CMakeFiles/sampling.dir/basic.cpp.o CMakeFiles/sampling.dir/basic_test.cpp.o  -o sampling -rdynamic -L/usr/local/lib -lgsl -lgslcblas -lm 

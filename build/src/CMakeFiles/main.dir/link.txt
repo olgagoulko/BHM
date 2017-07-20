@@ -1,1 +1,0 @@
-g++   -g -Wall    CMakeFiles/main.dir/main.cpp.o  -o main -rdynamic libsamplinglibrary.a -L/usr/local/lib -lgsl -lgslcblas -lm 
