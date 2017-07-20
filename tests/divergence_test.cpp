@@ -1,5 +1,5 @@
 #include "histogram.hpp"
-#include "matrix.hpp"
+#include "spline.hpp"
 #include "basic.hpp"
 #include "slot.hpp"
 
@@ -27,7 +27,7 @@ double divergenceWeight(double variable)
 
 int main(int argc, char **argv) {
 	
-	cout << "----------------- Production test: full default routine ----------------" << endl;
+	cout << "----------------- Divergent function on a semi-infinite domain ----------------" << endl;
 	
 	long unsigned int seed=time(NULL);//956475;
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
@@ -36,18 +36,10 @@ int main(int argc, char **argv) {
 	long samplingSteps=1e5;
 	double variable; double variableTransformed;
 	
-	//make basis with square roots
+	//make basis with square root
 	vector<basisSlot*> basisVector; int bf=4;
-	vector<slotBounds> intervalBounds;
-	
-	/*slotBounds bounds1(0, 1.25); sqrtSlot slot1(bounds1,bf); basisVector.push_back(&slot1); intervalBounds.push_back(bounds1);
-	slotBounds bounds2(1.25, 2.5); taylorSlot slot2(bounds2,bf); basisVector.push_back(&slot2); intervalBounds.push_back(bounds2);
-	slotBounds bounds3(2.5, 5); taylorSlot slot3(bounds3,bf); basisVector.push_back(&slot3); intervalBounds.push_back(bounds3);
-	slotBounds bounds4(5, 7.5); taylorSlot slot4(bounds4,bf); basisVector.push_back(&slot4); intervalBounds.push_back(bounds4);
-	slotBounds bounds5(7.5, 10); taylorSlot slot5(bounds5,bf); basisVector.push_back(&slot5); intervalBounds.push_back(bounds5);*/
-	
-	slotBounds bounds1(0, 0.5); sqrtSlot slot1(bounds1,bf); basisVector.push_back(&slot1); intervalBounds.push_back(bounds1);
-	slotBounds bounds2(0.5, 1.0); taylorSlot slot2(bounds2,bf); basisVector.push_back(&slot2); intervalBounds.push_back(bounds2);
+	slotBounds bounds1(0, 0.5); basisVector.push_back(new sqrtSlot(bounds1,bf));
+	slotBounds bounds2(0.5, 1.0); basisVector.push_back(new taylorSlot(bounds2,bf));
 
 	//initialize histogram and sample function
 	//double minVar=0; double maxVar=10.0;
@@ -56,6 +48,15 @@ int main(int argc, char **argv) {
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
 	histogramBasis binHistogram(histogramVector);
 	histogramBasis basisHistogram(basisVector);
+	
+	int maxRounds=100; int bootstrapSamples=100; vector<histogramBasis> binHistogramVector;
+	vector< vector<double> > averageCoeffs; vector< vector<double> > averageCov;
+	for(int round=0;round<maxRounds;round++)
+		{
+		vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
+		histogramBasis binHistogram(histogramVector);
+		binHistogramVector.push_back(binHistogram);
+		}
 
 	for(int i=0; i<samplingSteps;i++)
 		{
@@ -64,44 +65,97 @@ int main(int argc, char **argv) {
 	
 		//plain sampling
 		//basisHistogram.sample(variable,1);
-		//binHistogram.sample(variable,1);
+		//binHistogram.sampleUniform(variable,1);
 	
 		//just compensate for divergence
 		//basisHistogram.sample(variable,divergenceWeight(variable));
-		//binHistogram.sample(variable,divergenceWeight(variable));
+		//binHistogram.sampleUniform(variable,divergenceWeight(variable));
 
 		//interval transform
 		variableTransformed=variableTransform(variable);
 		
 		//without compensation for divergence
 		//basisHistogram.sample(variableTransformed,1/transformDerivative(variableTransformed));
-		//binHistogram.sample(variableTransformed,1/transformDerivative(variableTransformed));
+		//binHistogram.sampleUniform(variableTransformed,1/transformDerivative(variableTransformed));
 		
 		//with compensation for divergence
 		basisHistogram.sample(variableTransformed,divergenceWeight(variable)/transformDerivative(variableTransformed));
-		binHistogram.sample(variableTransformed,divergenceWeight(variable)/transformDerivative(variableTransformed));
+		binHistogram.sampleUniform(variableTransformed,divergenceWeight(variable)/transformDerivative(variableTransformed));
+		binHistogramVector[i%maxRounds].sampleUniform(variableTransformed,divergenceWeight(variable)/transformDerivative(variableTransformed));
 		}
 
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
 	double threshold=2;
-	splineArray testNewRoutine = binHistogram.splineProcedure(4, 2, samplingSteps, threshold, 0);
-	bool acceptance=testNewRoutine.getAcceptance();
+	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
+	bool acceptance=testBHMfit.getAcceptance();
 	while(acceptance==false)
 		{
 		threshold+=1;
-		testNewRoutine = binHistogram.splineProcedure(4, 2, samplingSteps, threshold, 0);
-		acceptance=testNewRoutine.getAcceptance();
+		testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
+		acceptance=testBHMfit.getAcceptance();
 		if(threshold>5) break;
 		}
-	testNewRoutine.printSplines();
+	testBHMfit.printSplines();
 	
-	/*splineArray testcurvature = binHistogram.splineProcedure(4, 2, samplingSteps, 2, 1);
-	cout << "Suppress curvature" << endl;
-	testcurvature.printSplines();*/
+	vector<slotBounds> intervalBounds=testBHMfit.getBounds();
+	for(int round=0;round<bootstrapSamples;round++)
+		{
+		vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
+		histogramBasis combinedHistogram(histogramVector);
+		for(int i=0;i<maxRounds;i++)
+			{
+			unsigned int random=gsl_rng_uniform_int (RNG, maxRounds);
+			combinedHistogram.addAnotherHistogram(binHistogramVector[random]);
+			}
+		
+		vector< double > dummy;
+		splineArray testfit2;
+		
+		for(unsigned int j=0;j<intervalBounds.size();j++)
+			{
+			vector<double> theCoeffVec(4, 0.0); vector<double> theCovVec(10, 0.0);
+			averageCoeffs.push_back(theCoeffVec);
+			averageCov.push_back(theCovVec);
+			}
+		
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
+		testfit2 = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		
+		for(unsigned int j=0;j<intervalBounds.size();j++)
+			{
+			vector<double> currentCoeffs=testfit2.getSplinePiece(j) -> getCoefficients();
+			vector<double> delta;
+			for(unsigned int i=0;i<4;i++)
+				{
+				delta.push_back(currentCoeffs[i] - averageCoeffs[j][i]);
+				averageCoeffs[j][i] += delta[i] / (round+1);
+				}
+			for(unsigned int i=0;i<4;i++)
+				for(unsigned int k=i;k<4;k++)
+					{
+					averageCov[j][i*(7-i)/2+k] += delta[i]*delta[k]*round/(round+1);
+					}
+			}
+		}
+	vector<splinePiece*> theBootstrapSplines;
+	for(unsigned int i=0;i<intervalBounds.size();i++) 
+		{
+		theBootstrapSplines.push_back(new splinePiece(intervalBounds[i]));
+			
+		vector<double> theErrorCoefficients; for(unsigned int j=0;j < 7;j++) theErrorCoefficients.push_back(0); 
+		for(unsigned int j=0;j < 4;j++)
+			for(unsigned int k=j;k < 4;k++)
+				{
+				theErrorCoefficients[j+k]+=averageCov[i][j*(7-j)/2+k]/(bootstrapSamples - 1);
+				if(j!=k) theErrorCoefficients[j+k]+=averageCov[i][j*(7-j)/2+k]/(bootstrapSamples - 1);
+				}
+		theBootstrapSplines[i] -> setSplinePiece(averageCoeffs[i], theErrorCoefficients);
+		}
+		
+	splineArray averageBootstrapSpline(theBootstrapSplines);
 
-	
 	ofstream output("histogram_testoutput.dat");
 	double printStep=0.01; double currentVar; pair<double,double> basisResult;
 	
@@ -128,8 +182,9 @@ int main(int argc, char **argv) {
 		basisResult=scaledBasisHistogram.sampledFunctionValueWeightedAverage(variableTransformed);
 		output << currentVar << '\t' << scaledBinHistogram.sampledFunctionValueWeightedAverage(variableTransformed).first/divergenceWeight(currentVar) << '\t' 
 		<< scaledBinHistogram.sampledFunctionValueWeightedAverage(variableTransformed).second/divergenceWeight(currentVar) << '\t' 
-		<< '\t' << testNewRoutine.splineValue(variableTransformed)/divergenceWeight(currentVar) << '\t' << testNewRoutine.splineError(variableTransformed)/divergenceWeight(currentVar)
+		<< '\t' << testBHMfit.splineValue(variableTransformed)/divergenceWeight(currentVar) << '\t' << testBHMfit.splineError(variableTransformed)/divergenceWeight(currentVar)
 		<< '\t' << basisResult.first/divergenceWeight(currentVar) << '\t' << basisResult.second/divergenceWeight(currentVar)
+		<< '\t' << averageBootstrapSpline.splineValue(variableTransformed)/divergenceWeight(currentVar) << '\t' << averageBootstrapSpline.splineError(variableTransformed)/divergenceWeight(currentVar)
 		<< endl;
 		}/**/
 	

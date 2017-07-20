@@ -7,14 +7,16 @@ using namespace std;
 
 double testFunction(double variable, int sector)
 	{
-	double coefficient=1;
+	double coefficient=1; double prefactor=1;
 	if(sector==1) coefficient=0.99;
-	return exp(-variable*coefficient);
+	else if(sector==0) {coefficient=0; prefactor=1./3.;}
+	
+	return prefactor*exp(-variable*coefficient);
 	}
 
 int main(int argc, char **argv) {
 	
-	cout << "----------------- Test with sign problem and Markov chain updates ----------------" << endl;
+	cout << "----------------- Test with sign problem and Markov chain updates, normalization sector ----------------" << endl;
 	
 	long unsigned int seed=345902845;
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
@@ -27,36 +29,40 @@ int main(int argc, char **argv) {
 	vector<slotBounds> intervalBounds;
 	slotBounds bounds1(0,3); basisVector.push_back(new taylorSlot(bounds1,bf));
 	histogramBasis basisHistogram(basisVector);
+	
+	taylorSlot normSlot(bounds1,0);
 
 	double minVar=0.; double maxVar=3.0; double maxVarTotal=3.0;
 	double slotWidth=(maxVar-minVar)/pow(2.,10); int numberOverlaps=1; int totalNumOfBasisFn=0;
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
 	histogramBasis binHistogram(histogramVector);
 	
-	int maxRounds=100; int bootstrapSamples=100; vector<histogramBasis> binHistogramVector;
+	/**/int maxRounds=100; int bootstrapSamples=100; vector<histogramBasis> binHistogramVector;
 	vector< vector<double> > averageCoeffs; vector< vector<double> > averageCov;
 	for(int round=0;round<maxRounds;round++)
 		{
 		vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
 		histogramBasis binHistogram(histogramVector);
 		binHistogramVector.push_back(binHistogram);
-		}
+		}/**/
 
 	double currentVar=0; double newVar;
-	int currentSector=-1;
+	int currentSector=0;
 	double currentWeight=testFunction(currentVar,currentSector); double newWeight;
 	double intervalSize=maxVarTotal-minVar;
 	int whichUpdate; bool accept;
-	//int sectorCounter;
+	int sectorCounter[3]; sectorCounter[0]=0; sectorCounter[1]=0; sectorCounter[2]=0;
 	for(int i=0; i<MCsteps;i++)
 		{
 		whichUpdate=gsl_rng_uniform_int(RNG,2);
 		if(whichUpdate==0)
 			{
-			//switch between branches
-			newWeight=testFunction(currentVar,-currentSector);
+			//switch between sectors
+			int newSector=currentSector+1+gsl_rng_uniform_int(RNG,2);
+			if(newSector>1) newSector-=3;
+			newWeight=testFunction(currentVar,newSector);
 			accept=acceptreject(newWeight/currentWeight, RNG);
-			if(accept==true) {currentSector=-currentSector; currentWeight=newWeight;}
+			if(accept==true) {currentSector=newSector; currentWeight=newWeight;}
 			}
 		else
 			{
@@ -74,21 +80,31 @@ int main(int argc, char **argv) {
 			binHistogram.sampleUniform(currentVar,currentSector);
 			basisHistogram.sample(currentVar,currentSector);
 		
-			binHistogramVector[(i/10)%maxRounds].sample(currentVar,currentSector);
-			}
-		//if(currentSector==1) sectorCounter++;
-		}
+			binHistogramVector[(i/10)%maxRounds].sampleUniform(currentVar,currentSector);
 		
-	//cout << "Sector counter = " << sectorCounter/double(samplingSteps) << endl;
+			sectorCounter[currentSector+1]++;
+			if(currentSector==0) normSlot.sample(currentVar,1.);
+			}
+		}
+	
+	cout << "Sector counters: " << sectorCounter[0]/double(samplingSteps) << '\t' << sectorCounter[1]/double(samplingSteps) << '\t' << sectorCounter[2]/double(samplingSteps) << endl;
+	
+	cout << "Normalization slot " << endl;
+	normSlot.printSampledCoeffs();
+	cout << normSlot.sampledFunctionValue(0) << " " << normSlot.sampledFunctionError(0) << endl;
+	
+	normSlot.scale(samplingSteps);
+	normSlot.printSampledCoeffs();
+	cout << normSlot.sampledIntegral() << " " << normSlot.sampledIntegralError() << endl;
 		
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, 2, 0);
+	splineArray testBHMfit = binHistogram.normalizedHistogram(normSlot.sampledIntegral()).BHMfit(4, 2, samplingSteps, 2, 0);
 	testBHMfit.printSplineArrayInfo(); cout << endl;
 	testBHMfit.printSplines();
 	
-	intervalBounds=testBHMfit.getBounds();
+	/**/intervalBounds=testBHMfit.getBounds();
 	for(int round=0;round<bootstrapSamples;round++)
 		{
 		vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
@@ -109,7 +125,8 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
+		//vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.normalizedHistogram(normSlot.sampledIntegral()).binHierarchy(samplingSteps);
 		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
 			
 		for(unsigned int j=0;j<intervalBounds.size();j++)
@@ -147,19 +164,20 @@ int main(int argc, char **argv) {
 	splineArray averageBootstrapSpline(theBootstrapSplines);
 	cout << "Average Bootstrap Spline" << endl;
 	averageBootstrapSpline.printSplineArrayInfo(); averageBootstrapSpline.printSplines(); cout << endl;
+	/**/
 	
 	ofstream output("histogram_testoutput.dat");
-	double printStep=0.05; double currentVar2; pair<double,double> coarseGrainedResult; pair<double,double> basisResult;
+	double printStep=0.05; pair<double,double> coarseGrainedResult; pair<double,double> basisResult;
 	for(int i=0; i<(maxVar-minVar)/printStep;i++) 
 		{
-		currentVar=minVar+i*printStep+printStep/2; currentVar2=currentVar-printStep/2;
-		coarseGrainedResult=scaledBinHistogram.sampledFunctionValueWeightedAverage(currentVar);
-		basisResult=scaledBasisHistogram.sampledFunctionValueWeightedAverage(currentVar2);
+		currentVar=minVar+i*printStep+printStep/2;
+		coarseGrainedResult=scaledBinHistogram.normalizedHistogram(normSlot.sampledIntegral()).sampledFunctionValueWeightedAverage(currentVar);
+		basisResult=scaledBasisHistogram.normalizedHistogram(normSlot.sampledIntegral()).sampledFunctionValueWeightedAverage(currentVar);
 	
 		output << currentVar << '\t' << coarseGrainedResult.first << '\t' << coarseGrainedResult.second << '\t' 
 		<< '\t' << testBHMfit.splineValue(currentVar) << '\t' << testBHMfit.splineError(currentVar)
 		<< '\t' << averageBootstrapSpline.splineValue(currentVar) << '\t' << averageBootstrapSpline.splineError(currentVar)
-		<< '\t' << currentVar2 << '\t' << basisResult.first << '\t' << basisResult.second
+		<< '\t' << basisResult.first << '\t' << basisResult.second
 		<< endl;
 		}
 	

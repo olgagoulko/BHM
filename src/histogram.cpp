@@ -1,12 +1,12 @@
 #include "basic.hpp"
 #include "slot.hpp"
-#include "matrix.hpp"
+#include "spline.hpp"
 #include "histogram.hpp"
 
 using namespace std; 
 
 vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotWidth, int numberOverlaps, int totalNumOfBasisFn)
-{
+	{
 	if(numberOverlaps<1) numberOverlaps = 10;
 	
 	if(totalNumOfBasisFn<0) totalNumOfBasisFn=0;
@@ -54,12 +54,11 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 		}
 	
 	return basisSlotVector;
-}
+	}
 
 
 histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots)
-{
-	
+	{
 	valuesOutsideBounds = new excessBin();
 	lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
 	for(unsigned int i=0;i<theBasisSlots.size();i++)
@@ -70,20 +69,70 @@ histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots)
 		if(currentBounds.getIsInfinite()) noUpperBound=true;
 		else if(currentBounds.getUpperBound()>upperBound) upperBound=currentBounds.getUpperBound();
 		}
+	}
 
-}
+histogramBasis::~histogramBasis()
+	{
+	delete valuesOutsideBounds;
+	for (vector<basisSlot*>::iterator i = basisSlots.begin(); i != basisSlots.end(); ++i ) delete *i;
+	basisSlots.clear();
+	}
+	
+histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
+	{
+	if (this != &toBeAssigned)
+		{
+		delete valuesOutsideBounds;
+		valuesOutsideBounds = new excessBin(toBeAssigned.getExcessCounter(),toBeAssigned.getExcessValues(1.));
+
+		for (vector<basisSlot*>::iterator i = basisSlots.begin(); i != basisSlots.end(); i++ ) delete *i;
+		basisSlots.clear();
+		
+		lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+			
+		for (unsigned int i=0;i<toBeAssigned.getSize();i++)
+			{
+			basisSlot* theSlot=toBeAssigned.getSlot(i) -> Clone();
+			basisSlots.push_back(theSlot);
+		
+			slotBounds currentBounds=(basisSlots[i] -> getBounds());
+			if(currentBounds.getLowerBound()<lowerBound) lowerBound=currentBounds.getLowerBound();
+			if(currentBounds.getIsInfinite()) noUpperBound=true;
+			else if(currentBounds.getUpperBound()>upperBound) upperBound=currentBounds.getUpperBound();
+			}
+		}
+	return *this;
+	}
+	
+histogramBasis::histogramBasis(const histogramBasis& toBeCopied)
+	{
+	valuesOutsideBounds = new excessBin(toBeCopied.getExcessCounter(),toBeCopied.getExcessValues(1.));
+	
+	lowerBound=(toBeCopied.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+	
+	for (unsigned int i=0;i<toBeCopied.getSize();i++)
+		{
+		basisSlot* theSlot=toBeCopied.getSlot(i) -> Clone();
+		basisSlots.push_back(theSlot);
+			
+		slotBounds currentBounds=(basisSlots[i] -> getBounds());
+		if(currentBounds.getLowerBound()<lowerBound) lowerBound=currentBounds.getLowerBound();
+		if(currentBounds.getIsInfinite()) noUpperBound=true;
+		else if(currentBounds.getUpperBound()>upperBound) upperBound=currentBounds.getUpperBound();
+		}
+	}
 
 
 void histogramBasis::appendSlot(basisSlot* theSlot)
-{
+	{
 	basisSlots.push_back(theSlot);
 	if((theSlot -> getBounds()).getLowerBound()<lowerBound) lowerBound=(theSlot -> getBounds()).getLowerBound();
 	if((theSlot -> getBounds()).getIsInfinite()) noUpperBound=true;
 	else if((theSlot -> getBounds()).getUpperBound()>upperBound) upperBound=(theSlot -> getBounds()).getUpperBound();
-}
+	}
 
 basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int endPoint) const
-{
+	{
 	if((startPoint>endPoint) || (endPoint>=basisSlots.size())) {cout << "ERROR in combinedSlot" << endl; exit(EXIT_FAILURE);}
 	else if(startPoint>endPoint) {unsigned int save=endPoint; endPoint=startPoint; startPoint=save;}
 	
@@ -108,32 +157,43 @@ basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int en
 		}
 
 	return combined;
-}
+	}
 
 basisSlot* histogramBasis::getSlot(unsigned int whichSlot) const
-{
-if(whichSlot>=basisSlots.size()) {cout << "ERROR in getSlot, " << whichSlot << " does not exist" << endl; exit(EXIT_FAILURE);}
-return basisSlots[whichSlot];
-}
+	{
+	if(whichSlot>=basisSlots.size()) {cout << "ERROR in getSlot, " << whichSlot << " does not exist" << endl; exit(EXIT_FAILURE);}
+	return basisSlots[whichSlot];
+	}
 
 
 void histogramBasis::sample(double variable, double valueToSample)
-{
+	{
 	bool isOutsideBounds=true;
 	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
 		if( basisSlots[i] -> checkIfInBasisSlot(variable) ) {basisSlots[i] -> sample(variable,valueToSample); isOutsideBounds=false;}
 		}
 	if(isOutsideBounds) valuesOutsideBounds -> sample(variable, valueToSample);
-}
+	}
+
+void histogramBasis::sampleUniform(double variable, double valueToSample)
+	{
+	//faster sampling, assuming all slots are of equal width, without overlaps
+	if(variable > upperBound || variable < lowerBound) valuesOutsideBounds -> sample(variable, valueToSample);
+	else 
+		{
+		basisSlots[int((variable-lowerBound)/((basisSlots[0] -> getBounds()).slotWidth()))] -> sample(variable,valueToSample);
+		}
+	}
+
 
 histogramBasis histogramBasis::coarseGrainedHistogram(int minNumberTimesSampled)
-{
+	{
 	vector<basisSlot*> coarseGrainedSlots;
 	unsigned int counter=0; bool enough;
 	for(unsigned int i=0;i<basisSlots.size();i++) basisSlots[i] -> updateEnoughSampled(minNumberTimesSampled);
 	while(counter<basisSlots.size())
-	{
+		{
 		enough = basisSlots[counter] -> enoughSampled();
 		if(enough)
 			{
@@ -159,15 +219,15 @@ histogramBasis histogramBasis::coarseGrainedHistogram(int minNumberTimesSampled)
 				counter=basisSlots.size();
 				}
 			}
-	}
+		}
 	
 	histogramBasis result(coarseGrainedSlots);
 	return result;
-}
+	}
 
 
 pair<double,double> histogramBasis::sampledFunctionValueAverage(double variable) const
-{
+	{
 	vector<double> sampledValue;
 	int numberSlots=0;
 	double average=0;
@@ -202,10 +262,10 @@ pair<double,double> histogramBasis::sampledFunctionValueAverage(double variable)
 		
 	pair<double,double> thisPair(average,error);
 	return thisPair;
-}
+	}
 
 pair<double,double> histogramBasis::sampledFunctionValueWeightedAverage(double variable) const
-{
+	{
 	double sampledValue=0; double value;
 	double sumVariance=0; double variance;
 	double error;
@@ -233,10 +293,10 @@ pair<double,double> histogramBasis::sampledFunctionValueWeightedAverage(double v
 	pair<double,double> result(sampledValue,error);
 	
 	return result;
-}
+	}
 
 histogramBasis histogramBasis::scaledHistogram(long norm)
-{
+	{
 	vector<basisSlot*> scaledSlots;
 	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
@@ -247,11 +307,24 @@ histogramBasis histogramBasis::scaledHistogram(long norm)
 	
 	histogramBasis result(scaledSlots);
 	return result;
+	}
 
-}
+histogramBasis histogramBasis::normalizedHistogram(double norm)
+	{
+	vector<basisSlot*> scaledSlots;
+	for(unsigned int i=0;i<basisSlots.size();i++)
+		{
+		basisSlot* currentSlot = basisSlots[i] -> Clone();
+		currentSlot -> normalize(norm);
+		scaledSlots.push_back(currentSlot);
+		}
+	
+	histogramBasis result(scaledSlots);
+	return result;
+	}
 
 bool histogramBasis::addAnotherHistogram(histogramBasis anotherHistogram)
-{
+	{
 	bool addable=false;
 	if(basisSlots.size()==anotherHistogram.getSize())
 		{
@@ -262,11 +335,11 @@ bool histogramBasis::addAnotherHistogram(histogramBasis anotherHistogram)
 			}
 		}
 	return addable;
-}
+	}
 
 
 vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
-{
+	{
 	unsigned int numberElementaryBins = basisSlots.size();
 	unsigned int maxLevel=rounding(log(double(numberElementaryBins))/log(2));
 	vector< vector<basisSlot*> > analysisBins;
@@ -289,6 +362,8 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 			}
 		}
 	
+	//only use slots where enough sampled, disregard levels if too few usable slots
+	unsigned int breakPoint=analysisBins.size();
 	for(unsigned int j=0;j<analysisBins.size();j++)
 		{
 		int initialAnalysisBinsLevelSize=analysisBins[j].size()-1;
@@ -297,26 +372,34 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 			if(analysisBins[j][i] -> enoughSampled()) analysisBins[j][i] -> scale(norm);
 			else analysisBins[j].erase(analysisBins[j].begin()+i);
 			}
+		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize/4) || (analysisBins[j].size()==0)) 
+			{
+			breakPoint=j; break;
+			}
 		}
+	unsigned int initialAnalysisBinsSize=analysisBins.size();
+	for(unsigned int j=breakPoint;j<initialAnalysisBinsSize;j++) analysisBins.pop_back();
 	
 	return analysisBins;
-}
+	}
 
 
-splineArray histogramBasis::splineProcedure(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double gluingFactor)
-{
-	vector<double> a3array; vector<double> chisqArray;
+splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression)
+	{
+	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
+		
+	vector<double> aMaxVector; vector<double> chisqArray;
 	
 	if(minLevel<2) minLevel=2;
-	unsigned int numberElementaryBins = basisSlots.size();
-	unsigned int maxLevel=rounding(log(double(numberElementaryBins))/log(2));
 	unsigned int currentLevel=minLevel;
+	unsigned int maxLevel=rounding(log(double(basisSlots.size()))/log(2));
+	if(pow(2,maxLevel)!=basisSlots.size()) {cout << "Number of elementary bins is not a power of 2" << endl; exit(EXIT_FAILURE);}
 	
-	//only works for 2^n elementary bins!
-	//make a bin hierarchy in advance by combining bins; position in vector denotes bin level: 0 is largest bin, 1 are second level bins etc
-	//intervals can be marked in the same way: as a sequence 0 or 11 or 221 or 2331 etc
-	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm);
+	//make bin hierarchy; position in outer vector denotes bin level: 0 is largest bin, 1 are second level bins etc
+	//intervals labeled in the same way: as a sequence 0 or 11 or 221 or 2331 etc
+	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm); //the bins on each given level don't have to be in order, only analysisBins do
 
+	if(analysisBins.size()<minLevel) {cout << "Not enough data for meaningful analysis" << endl; exit(EXIT_FAILURE);}
 	if(isDataConsistentWithZero(analysisBins)==true) cout << "Data is consistent with zero on the interval" << endl;
 		
 	vector<slotBounds> intervalBounds;
@@ -326,62 +409,35 @@ splineArray histogramBasis::splineProcedure(unsigned int splineOrder, unsigned i
 	intervalBounds.push_back(histogramBounds);
 	unsigned int currentNumberIntervals;
 	intervalOrders.push_back(0); intervalNumbers.push_back(0);
-	vector< vector<basisSlot*> > currentAnalysisBins;					//the bins on each given level don't have to be in order, only analysisBins do
-	for(unsigned int j=0;j<=maxLevel;j++) currentAnalysisBins.push_back(analysisBins[j]);	//all bins are used
 
-	//divide bins by a level and check if intervals need to be split
-	bool allSplinesGood;
-	while(currentLevel<maxLevel)
+	bool allSplinesGood; bool checkIntervals;
+	while(currentLevel<analysisBins.size()-1)
 		{
-		//check matched spline
-		splineArray result = matchedSplineFit(currentAnalysisBins, intervalBounds, splineOrder, 0, a3array, chisqArray);	//don't need errors, coefficients etc until the final spline -> refactor this!!!!!!!!
+		splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
 
-		if(result.checkOverallAcceptance(fitAcceptanceThreshold)==true) allSplinesGood=true;
-		else {
-			//check if all fits good: now have multiple chi^2 contributions, should redefine isSplineGood function for this
-			currentNumberIntervals=intervalBounds.size();
-			bool isIntervalGood[currentNumberIntervals];
-			allSplinesGood=true;
-			chisqArray.resize(0);
-			for(unsigned int i=0;i<currentNumberIntervals;i++)
+		if(result.checkOverallAcceptance(fitAcceptanceThreshold)!=true) checkIntervals=true;
+		else checkIntervals=false;
+		
+		currentNumberIntervals=intervalBounds.size();
+		bool isIntervalGood[currentNumberIntervals];
+		allSplinesGood=true;
+		chisqArray.resize(0);
+		for(unsigned int i=0;i<currentNumberIntervals;i++)
+			{
+			if(checkIntervals) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
+			double chisqArrayElement = 1+fitAcceptanceThreshold*sqrt(2.);
+			bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
+			chisqArray.push_back(chisqArrayElement);
+		
+			if(checkIntervals)
 				{
-				cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
-				spline * currentSpline = result.getSpline(i);
-				bool currentSplineGood=true;
-				chisqArray.push_back(1+fitAcceptanceThreshold*sqrt(2.));
-				for(unsigned int j=0;j<=maxLevel-intervalOrders[i];j++)
-					{
-					//test all bins fully within spline order by order
-					double currentChisq=0;
-					unsigned int numberSlotsAtCurrentLevel=0;
-					for(unsigned int k=0;k<analysisBins[j+intervalOrders[i]].size();k++)
-						{
-						basisSlot* currentSlot = analysisBins[j+intervalOrders[i]][k];
-						if((currentSlot -> getBounds()).overlapping(currentSpline -> getBounds()))
-							{
-							numberSlotsAtCurrentLevel++;
-							double currentSplineIntegral = currentSpline -> splineIntegral(currentSlot -> getBounds());
-							currentSplineIntegral-=currentSlot -> sampledIntegral();
-							currentSplineIntegral*=1./(currentSlot -> sampledIntegralError());
-							currentChisq+=currentSplineIntegral*currentSplineIntegral;
-							}
-						}
-					
-					if(numberSlotsAtCurrentLevel>pow(2,j)/2.)
-						{
-						currentChisq*=1./double(numberSlotsAtCurrentLevel);
-						double delta=1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
-						if(delta<chisqArray[i]) chisqArray[i]=delta;
-						cout << intervalOrders[i]+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)) << endl;
-						if(currentChisq>1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; allSplinesGood=false; break;}
-						}
-					else {cout << "Only " << numberSlotsAtCurrentLevel << " good bins, not enough for evaluation" << endl; break;}
-					}
-				
+				if(currentSplineGood==false) allSplinesGood=false;
 				isIntervalGood[i]=currentSplineGood;
-				cout << "This interval fit is "; if(!currentSplineGood) cout << "not "; cout << "good" << endl;
 				}
-			
+			}
+				
+		if(checkIntervals)
+			{
 			unsigned int intervalCounter=0;
 			for(unsigned int i=0;i<currentNumberIntervals;i++)
 				{
@@ -403,200 +459,151 @@ splineArray histogramBasis::splineProcedure(unsigned int splineOrder, unsigned i
 			
 				intervalBounds.push_back(currentBounds);
 				}
-		}
+			}
 		
 		if(allSplinesGood) {cout << "Good spline found!" << endl; cout << endl; break;}
 		currentLevel++;
 		cout << endl;
 		}
 	
-	if(!allSplinesGood) gluingFactor=0;
-	/**/if(gluingFactor>0)
-	{
-		a3array.resize(0);
-		splineArray geta3=matchedSplineFit(currentAnalysisBins, intervalBounds, splineOrder, 0, a3array, chisqArray);
-		for(unsigned int i=0;i<intervalOrders.size();i++) a3array.push_back((geta3.getSpline(i) -> getCoefficients())[splineOrder-1]);
-	}
+	if(!allSplinesGood) {jumpSuppression=0; cout << "No acceptable fit could be found with the current threshold " << fitAcceptanceThreshold << endl;}
+	if(intervalBounds.size()==1) {jumpSuppression=0; cout << "No knots for jump suppression" << endl;} //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
 	
-	splineArray result = matchedSplineFit(currentAnalysisBins, intervalBounds, splineOrder, gluingFactor, a3array, chisqArray);
-	
-	/**/if(gluingFactor>0)
-	{
-		cout << endl; cout << "Iterative consistent constraints procedure" << endl; cout << endl;
-		for(int repeat=0;repeat<1;repeat++)
+	/**/if(jumpSuppression>0)
 		{
+		aMaxVector.resize(0);
+		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+		for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((geta3.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
+		cout << endl; cout << "Iterative consistent constraints procedure" << endl; cout << endl;
+		}
+	
+	splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
+	
+	/**/if(jumpSuppression>0)
+		{
+		for(int repeat=0;repeat<1;repeat++)
+			{
 			bool CCprocedureConverged=false; int iterations=0; double maximalGoodGluingFactor=0; double minimalBadGluingFactor=1/VERY_SMALL_NUMBER; int maxIterations=20;
 			while(CCprocedureConverged==false)
-			{
-				iterations++;
-				allSplinesGood=true;
-				for(unsigned int i=0;i<intervalBounds.size();i++)
 				{
-					//cout << "Final check after CC; interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
-					spline * currentSpline = result.getSpline(i);
-					bool currentSplineGood=true;
-					for(unsigned int j=0;j<=maxLevel-intervalOrders[i];j++)
-					{
-						//test all bins fully within spline order by order
-						double currentChisq=0;
-						unsigned int numberSlotsAtCurrentLevel = pow(2,j);
-						for(unsigned int k=0;k<pow(2,j);k++)
-						{
-							basisSlot* currentSlot = analysisBins[intervalOrders[i]+j][intervalNumbers[i]*numberSlotsAtCurrentLevel+k];
-							if(currentSlot -> enoughSampled())
-							{
-								double currentSplineIntegral = currentSpline -> splineIntegral(currentSlot -> getBounds());
-								currentSplineIntegral-=currentSlot -> sampledIntegral();
-								currentSplineIntegral*=1./(currentSlot -> sampledIntegralError());
-								currentChisq+=currentSplineIntegral*currentSplineIntegral;
-							}
-							else numberSlotsAtCurrentLevel--;
-						}
-						if(numberSlotsAtCurrentLevel>pow(2,j)/2.)
-						{
-							currentChisq*=1./double(numberSlotsAtCurrentLevel);
-							//cout << intervalOrders[i]+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)) << endl;
-							if(currentChisq>1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; allSplinesGood=false; break;}
-						}
-						else {/*cout << "Only " << numberSlotsAtCurrentLevel << " good bins, not enough for evaluation" << endl;*/ break;}	//already not enough data in slots at this level, so can stop checking
-					}
-					
-					//cout << "This interval fit is "; if(!currentSplineGood) cout << "not "; cout << "good" << endl;
-				}
-				cout << "Gluing factor " << gluingFactor << "; the spline is "; if(!allSplinesGood) cout << "not "; cout << "good" << endl;
+				iterations++;
+				allSplinesGood = result.checkOverallAcceptance(fitAcceptanceThreshold);
+				cout << "Gluing factor " << jumpSuppression << "; the interval fit is "; if(!allSplinesGood) cout << "not "; cout << "good" << endl;
 				
 				if(!allSplinesGood)
-				{
-					if(gluingFactor<minimalBadGluingFactor) minimalBadGluingFactor=gluingFactor;
+					{
+					if(jumpSuppression<minimalBadGluingFactor) minimalBadGluingFactor=jumpSuppression;
 					
-					if(iterations>maxIterations) {gluingFactor=maximalGoodGluingFactor; CCprocedureConverged=true; allSplinesGood=true;}
-					else if(maximalGoodGluingFactor>0) {gluingFactor=(maximalGoodGluingFactor+minimalBadGluingFactor)/2.;}
-					else gluingFactor*=0.1;
-				}
+					if(iterations>maxIterations) {jumpSuppression=maximalGoodGluingFactor; CCprocedureConverged=true; allSplinesGood=true;}
+					else if(maximalGoodGluingFactor>0) {jumpSuppression=(maximalGoodGluingFactor+minimalBadGluingFactor)/2.;}
+					else jumpSuppression*=0.1;
+					}
 				else	{
-					if(gluingFactor>maximalGoodGluingFactor) maximalGoodGluingFactor=gluingFactor;
+					if(jumpSuppression>maximalGoodGluingFactor) maximalGoodGluingFactor=jumpSuppression;
 					
-					if(iterations>maxIterations) {CCprocedureConverged=true; gluingFactor=maximalGoodGluingFactor;}
-					else if(minimalBadGluingFactor<1/VERY_SMALL_NUMBER) {gluingFactor=(maximalGoodGluingFactor+minimalBadGluingFactor)/2.;}
-					else gluingFactor*=2;
-				}
+					if(iterations>maxIterations) {CCprocedureConverged=true; jumpSuppression=maximalGoodGluingFactor;}
+					else if(minimalBadGluingFactor<1/VERY_SMALL_NUMBER) {jumpSuppression=(maximalGoodGluingFactor+minimalBadGluingFactor)/2.;}
+					else jumpSuppression*=2;
+					}
 				
-				result = matchedSplineFit(currentAnalysisBins, intervalBounds, splineOrder, gluingFactor, a3array, chisqArray);
-			}
-			/**/a3array.resize(0); chisqArray.resize(0);
-			for(unsigned int i=0;i<intervalOrders.size();i++) a3array.push_back((result.getSpline(i) -> getCoefficients())[splineOrder-1]);
-			for(unsigned int i=0;i<intervalBounds.size();i++)
-			{
-				spline * currentSpline = result.getSpline(i);
-				chisqArray.push_back(1+fitAcceptanceThreshold*sqrt(2.));
-				for(unsigned int j=0;j<=maxLevel-intervalOrders[i];j++)
-				{
-					//test all bins fully within spline order by order
-					double currentChisq=0;
-					unsigned int numberSlotsAtCurrentLevel = pow(2,j);
-					for(unsigned int k=0;k<pow(2,j);k++)
-					{
-						basisSlot* currentSlot = analysisBins[intervalOrders[i]+j][intervalNumbers[i]*numberSlotsAtCurrentLevel+k];
-						if(currentSlot -> enoughSampled())
-						{
-							double currentSplineIntegral = currentSpline -> splineIntegral(currentSlot -> getBounds());
-							currentSplineIntegral-=currentSlot -> sampledIntegral();
-							currentSplineIntegral*=1./(currentSlot -> sampledIntegralError());
-							currentChisq+=currentSplineIntegral*currentSplineIntegral;
-						}
-						else numberSlotsAtCurrentLevel--;
-					}
-					if(numberSlotsAtCurrentLevel>pow(2,j)/2.)
-					{
-						currentChisq*=1./double(numberSlotsAtCurrentLevel);
-						double delta=1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
-						if(delta<chisqArray[i]) chisqArray[i]=delta;
-						if(currentChisq>1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {break;}
-					}
-					else break;
+				result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
 				}
-			}/**/
-			gluingFactor=1;
+			/**/aMaxVector.resize(0); chisqArray.resize(0);
+			for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((result.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
+			for(unsigned int i=0;i<intervalBounds.size();i++)
+				{
+				double chisqArrayElement=1+fitAcceptanceThreshold*sqrt(2.);
+				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
+				chisqArray.push_back(chisqArrayElement);
+				}/**/
+			jumpSuppression=1;
+			}
 		}
-	}
-	/**/
+		/**/
 	
+	vector< vector<basisSlot*> >::iterator i;
+	vector<basisSlot*>::iterator j;
+	for (i = analysisBins.begin(); i != analysisBins.end(); i++) for (j = i->begin(); j != i->end(); j++) delete *j;
+	analysisBins.clear();
+
 	result.updateGoodness(allSplinesGood);
 	return result;
-}
+	}
 
 
 
 
-splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double gluingFactor, vector<double> a3array, vector<double> chisqArray)
-{
-	//test weighting bins at different orders differently----------------------------
-	double orderWeighting[currentAnalysisBins.size()];
-	for(unsigned int i=0;i<currentAnalysisBins.size();i++) orderWeighting[i]=1.;
-	//-------------------------------------------------------------------------------
-
-	unsigned int numberIntervals=intervalBounds.size()-1;
+splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, vector<double> aMaxVector, vector<double> chisqArray)
+	{
+	if(intervalBounds.size()==0) {cout << "ERROR in matchedSplineFit, intervalBounds size is zero" << endl; exit(EXIT_FAILURE);}
+	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
+	
+	unsigned int numberIntervals=intervalBounds.size();
 	unsigned int matrixRows = 0;
 	for(unsigned int i=0;i<currentAnalysisBins.size();i++) matrixRows+=currentAnalysisBins[i].size();
-	unsigned int matrixCols=numberIntervals+splineOrder;
+	unsigned int matrixCols=numberIntervals+splineOrder-1;
 	
-	//this vector (size = number intervals) stores for each interval the bins that are fully inside the interval -> for chi^2 on interval evaluation
-	vector< vector<unsigned int> > binsFullyInsideInterval(numberIntervals+1);
+	vector< vector<unsigned int> > binsFullyInsideInterval(numberIntervals);
 	
-/**/ unsigned int matrixRows2=matrixRows; if(gluingFactor>0) {matrixRows2+=numberIntervals+1; if(numberIntervals>0) matrixRows2++;}
+/**/ 	unsigned int matrixRows2=matrixRows;
+	if(jumpSuppression>0)
+		{
+		matrixRows2+=numberIntervals-1;
+		//replace by line below if also want to constrain highest derivative on domain boundaries
+		//matrixRows2+=numberIntervals; if(numberIntervals>1) matrixRows2++;
+		}
+/**/
+
 	gsl_matrix * fullDesignMatrix = gsl_matrix_calloc (matrixRows2, matrixCols);
 	double* b = integralVector(currentAnalysisBins);
 	gsl_vector * gslb= gsl_vector_calloc (matrixRows2);
 	for(unsigned int i=0;i<matrixRows;i++) gsl_vector_set(gslb,i,b[i]);
 
 	double* binVec=binomialVector(splineOrder);
-	double intervalMatrix[numberIntervals][splineOrder-1];
-	double lastIntervalMatrix[numberIntervals][splineOrder-1];
+	double intervalMatrix[numberIntervals-1][splineOrder-1];
+	double lastIntervalMatrix[numberIntervals-1][splineOrder-1];
 	
 	double* basicDesignMatrix = designMatrix(currentAnalysisBins, splineOrder);
-	double currentLowerBound=0; double currentUpperBound; vector<basisSlot*>:: iterator it;
-	for(unsigned int i=0;i<numberIntervals;i++)
+	double currentLowerBound=0; double currentUpperBound;
+	for(unsigned int i=0;i<numberIntervals-1;i++)
 		{
 		currentUpperBound = intervalBounds[i].getUpperBound();
 		
 		for(unsigned int k=0; k < splineOrder-1;k++)
 			{
-			intervalMatrix[i][k]=(pow(currentUpperBound,splineOrder-1-k)-pow(currentLowerBound,splineOrder-1-k))*binVec[k]*pow(-1,splineOrder-2-k);
-			lastIntervalMatrix[i][k]=-pow(currentUpperBound,splineOrder-1-k)*binVec[k]*pow(-1,splineOrder-2-k);
+			intervalMatrix[i][k]=(pow(currentUpperBound,splineOrder-1-k)-pow(currentLowerBound,splineOrder-1-k))*binVec[k]*pow(-1,splineOrder-k);
+			lastIntervalMatrix[i][k]=-pow(currentUpperBound,splineOrder-1-k)*binVec[k]*pow(-1,splineOrder-k);
 			}
 		
 		currentLowerBound=currentUpperBound;
 		}
 
-	//go through all bins after intervals
-	//when bins are bigger than intervals their boundaries always coincide with some interval boundaries, because splitting in the same manner
-	//level of slot denotes how many slots we actually use of the given level (for now) -> might not need this anymore
+	//construction of full desgin matrix
 	unsigned int currentMatrixRow=0;
 	for(unsigned int j1=0;j1 < currentAnalysisBins.size();j1++)
 		for(unsigned int j2=0;j2 < currentAnalysisBins[j1].size();j2++)
 			{
 			slotBounds currentBounds=(currentAnalysisBins[j1][j2] -> getBounds());
 			double currentError=currentAnalysisBins[j1][j2] -> sampledIntegralError();
-			//double weightFactor=sqrt(double(currentAnalysisBins[j1].size()));
 			double weightFactor=sqrt(double(pow(2,j1)));
 			unsigned int start; unsigned int end;
-			for(unsigned int i=0;i<=numberIntervals;i++)
+			for(unsigned int i=0;i<numberIntervals;i++)
 				{
 				if(currentBounds.overlapping(intervalBounds[i])) {start=i; break;}
 				}
-			for(unsigned int i=start;i<=numberIntervals;i++)
+			for(unsigned int i=start;i<numberIntervals;i++)
 				{
 				if(currentBounds.overlapping(intervalBounds[i])) {end=i;}
 				}
 		
 			//regular elements for a0, a1, a2
 			for(unsigned int k=0; k < splineOrder-1;k++)
-				gsl_matrix_set(fullDesignMatrix,currentMatrixRow,k,basicDesignMatrix[currentMatrixRow*splineOrder+k]/orderWeighting[j1]);
+				gsl_matrix_set(fullDesignMatrix,currentMatrixRow,k,basicDesignMatrix[currentMatrixRow*splineOrder+k]);
 		
 			//very last element (x_i+1^4-x_i^4)/4
 			if(start==end)
 				{
-				gsl_matrix_set(fullDesignMatrix,currentMatrixRow,start+splineOrder-1,basicDesignMatrix[currentMatrixRow*splineOrder+splineOrder-1]/orderWeighting[j1]);
+				gsl_matrix_set(fullDesignMatrix,currentMatrixRow,start+splineOrder-1,basicDesignMatrix[currentMatrixRow*splineOrder+splineOrder-1]);
 				binsFullyInsideInterval[start].push_back(currentMatrixRow);
 				}
 			else
@@ -604,7 +611,7 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 				for(unsigned int i=start;i<=end;i++)
 					{
 					if( currentError < VERY_SMALL_NUMBER) gsl_matrix_set(fullDesignMatrix,currentMatrixRow,i+splineOrder-1,0);
-					else gsl_matrix_set(fullDesignMatrix,currentMatrixRow,i+splineOrder-1, splineBasisFunction(intervalBounds[i],splineOrder-1)/currentError/weightFactor/orderWeighting[j1]);
+					else gsl_matrix_set(fullDesignMatrix,currentMatrixRow,i+splineOrder-1, splineBasisFunction(intervalBounds[i],splineOrder-1)/currentError/weightFactor);
 					}
 				}
 		
@@ -614,9 +621,9 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 				for(unsigned int kk=0; kk < splineOrder-1;kk++)
 					{
 					for(unsigned int k=0; k < start; k++)
-						gsl_matrix_set(fullDesignMatrix, currentMatrixRow, k+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,k+splineOrder-1)+intervalMatrix[k][kk]*basicDesignMatrix[currentMatrixRow*splineOrder+kk]/orderWeighting[j1]);
+						gsl_matrix_set(fullDesignMatrix, currentMatrixRow, k+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,k+splineOrder-1)+intervalMatrix[k][kk]*basicDesignMatrix[currentMatrixRow*splineOrder+kk]);
 				
-					gsl_matrix_set(fullDesignMatrix, currentMatrixRow, start+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,start+splineOrder-1)+lastIntervalMatrix[start-1][kk]*basicDesignMatrix[currentMatrixRow*splineOrder+kk]/orderWeighting[j1]);
+					gsl_matrix_set(fullDesignMatrix, currentMatrixRow, start+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,start+splineOrder-1)+lastIntervalMatrix[start-1][kk]*basicDesignMatrix[currentMatrixRow*splineOrder+kk]);
 					}
 				}
 			else if(start!=end)
@@ -629,45 +636,41 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 						for(unsigned int kk=0; kk < splineOrder-1;kk++)
 							{
 							for(unsigned int k=0; k < i; k++)
-								gsl_matrix_set(fullDesignMatrix, currentMatrixRow, k+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,k+splineOrder-1)+intervalMatrix[k][kk]*splineBasisFunction(intervalBounds[i],kk)/currentError/weightFactor/orderWeighting[j1]);
+								gsl_matrix_set(fullDesignMatrix, currentMatrixRow, k+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,k+splineOrder-1)+intervalMatrix[k][kk]*splineBasisFunction(intervalBounds[i],kk)/currentError/weightFactor);
 						
-							gsl_matrix_set(fullDesignMatrix, currentMatrixRow, i+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,i+splineOrder-1)+lastIntervalMatrix[i-1][kk]*splineBasisFunction(intervalBounds[i],kk)/currentError/weightFactor/orderWeighting[j1]);
+							gsl_matrix_set(fullDesignMatrix, currentMatrixRow, i+splineOrder-1, gsl_matrix_get(fullDesignMatrix,currentMatrixRow,i+splineOrder-1)+lastIntervalMatrix[i-1][kk]*splineBasisFunction(intervalBounds[i],kk)/currentError/weightFactor);
 							}
 						}
 					}
 				}
 				
-			gsl_vector_set(gslb,currentMatrixRow,gsl_vector_get(gslb,currentMatrixRow)/orderWeighting[j1]);
+			gsl_vector_set(gslb,currentMatrixRow,gsl_vector_get(gslb,currentMatrixRow));
 			currentMatrixRow++;
 			}
 			
-/**/ if(gluingFactor>0)
+/**/ if(jumpSuppression>0)
 	{
-	for(unsigned int i=0;i<numberIntervals;i++) 
+	double factor=sqrt(jumpSuppression/double(numberIntervals));
+	for(unsigned int i=0;i<numberIntervals-1;i++) 
 		{
-		double minChisq=min(chisqArray[i+1],chisqArray[i]); if(i>0) minChisq=min(minChisq,chisqArray[i-1]); if(i<numberIntervals-1) minChisq=min(minChisq,chisqArray[i+2]);
-		double setToWhat=sqrt(gluingFactor/double(numberIntervals))*minChisq/(a3array[i+1]-a3array[i]);
+		double minChisq=min(chisqArray[i+1],chisqArray[i]); if(i>0) minChisq=min(minChisq,chisqArray[i-1]); if(i+2<numberIntervals) minChisq=min(minChisq,chisqArray[i+2]);
+		double setToWhat=factor*minChisq/(aMaxVector[i+1]-aMaxVector[i]);
 		gsl_matrix_set(fullDesignMatrix, matrixRows+i, splineOrder-1+i, -setToWhat);
 		gsl_matrix_set(fullDesignMatrix, matrixRows+i, splineOrder+i, setToWhat);
 		}
-	gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals, splineOrder-1, sqrt(gluingFactor/double(numberIntervals))*chisqArray[0]/(a3array[0]));
-	if(numberIntervals>0) gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals+1, splineOrder-1+numberIntervals, sqrt(gluingFactor/double(numberIntervals))*chisqArray[numberIntervals]/(a3array[numberIntervals]));
+	//uncomment below if also want to constrain highest derivative on domain boundaries
+	//gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals-1, splineOrder-1, factor*chisqArray[0]/(aMaxVector[0]));
+	//if(numberIntervals>1) gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals, splineOrder+numberIntervals-2, factor*chisqArray[numberIntervals-1]/(aMaxVector[numberIntervals-1]));
 	}
 /**/
 	
-	//cout << "design matrix" << endl;
-	//for(unsigned int i=0;i<matrixRows2;i++) {for(unsigned int j=0;j<matrixCols;j++) cout << gsl_matrix_get(fullDesignMatrix,i,j) << '\t'; cout << endl;}
-	//cout << endl;
-	
+	//chi^2 minimization using full design matrix
 	gsl_matrix * V = gsl_matrix_alloc (matrixCols, matrixCols);
 	gsl_vector * diagonal = gsl_vector_alloc (matrixCols);
 	gsl_vector *x = gsl_vector_alloc (matrixCols);
-	
-	double totalChiSquared=solveSVD(fullDesignMatrix, V, gslb, diagonal, x);	//these need to be adjusted
-	int totalDegreesOfFreedom=matrixRows-(numberIntervals+splineOrder-1);
-	vector<spline*> splines;
+	solveSVD(fullDesignMatrix, V, gslb, diagonal, x);
+	vector<splinePiece*> splines;
 
-	//this can actually be done in splineProcedure and probably should
 	currentMatrixRow=0;
 	vector<double> theChisq; vector<int> theDOF;
 	cout << "Checking separate chi_n^2/n in spline fit" << endl;
@@ -677,6 +680,7 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 		int dof = currentAnalysisBins[j].size();
 		gsl_vector_view currentgslb = gsl_vector_subvector (gslb, currentMatrixRow, dof);
 		double chisq; gsl_blas_ddot (&currentgslb.vector, &currentgslb.vector, &chisq);
+		chisq*=double(pow(2,j))/double(dof);
 		theChisq.push_back(chisq); theDOF.push_back(dof);
 		cout << j << '\t' << dof << '\t' << chisq << '\t' << sqrt(2./double(dof)) << endl;
 		currentMatrixRow+=dof;
@@ -701,8 +705,9 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 		for (unsigned int j = 0; j < matrixCols; j++)
 			covarianceMatrix[i][j]= gsl_matrix_get (fullCovarianceMatrix, i,j);
 
+	//updating coefficients and error coefficients of all spline pieces
 	vector<double> theCoefficients;
-	for(unsigned int n=0;n<=numberIntervals;n++)
+	for(unsigned int n=0;n<numberIntervals;n++)
 		{
 		if(n==0) 
 			{
@@ -743,19 +748,20 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 				if(j!=k) theErrorCoefficients[j+k]+=covarianceMatrix[j][k];
 				}
 
-		spline * solution = new spline(intervalBounds[n], splineOrder); solution -> setSpline(theCoefficients,theErrorCoefficients);
+		splinePiece * solution = new splinePiece(intervalBounds[n], splineOrder); solution -> setSplinePiece(theCoefficients,theErrorCoefficients);
 		splines.push_back(solution);
 		}
 
 	splineArray result(splines);
-	result.updateProperties(totalChiSquared,totalDegreesOfFreedom);
 	result.updateLevelProperties(theChisq,theDOF);
+	
+	gsl_matrix_free(fullDesignMatrix); gsl_vector_free(gslb);
+	gsl_matrix_free(V); gsl_vector_free(diagonal); gsl_vector_free(x); gsl_matrix_free(Vscaled); gsl_matrix_free(fullCovarianceMatrix);
+	delete [] binVec; delete [] b; delete [] basicDesignMatrix;
+	
 	return result;
 	
 }
-
-
-
 
 
 

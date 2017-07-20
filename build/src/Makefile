@@ -239,30 +239,6 @@ main.cpp.s:
 	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/main.dir/build.make src/CMakeFiles/main.dir/main.cpp.s
 .PHONY : main.cpp.s
 
-matrix.o: matrix.cpp.o
-.PHONY : matrix.o
-
-# target to build an object file
-matrix.cpp.o:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/matrix.cpp.o
-.PHONY : matrix.cpp.o
-
-matrix.i: matrix.cpp.i
-.PHONY : matrix.i
-
-# target to preprocess a source file
-matrix.cpp.i:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/matrix.cpp.i
-.PHONY : matrix.cpp.i
-
-matrix.s: matrix.cpp.s
-.PHONY : matrix.s
-
-# target to generate assembly for a file
-matrix.cpp.s:
-	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/matrix.cpp.s
-.PHONY : matrix.cpp.s
-
 slot.o: slot.cpp.o
 .PHONY : slot.o
 
@@ -287,6 +263,30 @@ slot.cpp.s:
 	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/slot.cpp.s
 .PHONY : slot.cpp.s
 
+spline.o: spline.cpp.o
+.PHONY : spline.o
+
+# target to build an object file
+spline.cpp.o:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/spline.cpp.o
+.PHONY : spline.cpp.o
+
+spline.i: spline.cpp.i
+.PHONY : spline.i
+
+# target to preprocess a source file
+spline.cpp.i:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/spline.cpp.i
+.PHONY : spline.cpp.i
+
+spline.s: spline.cpp.s
+.PHONY : spline.s
+
+# target to generate assembly for a file
+spline.cpp.s:
+	cd /home/olga/Documents/sampling/build && $(MAKE) -f src/CMakeFiles/samplinglibrary.dir/build.make src/CMakeFiles/samplinglibrary.dir/spline.cpp.s
+.PHONY : spline.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -310,12 +310,12 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... matrix.o"
-	@echo "... matrix.i"
-	@echo "... matrix.s"
 	@echo "... slot.o"
 	@echo "... slot.i"
 	@echo "... slot.s"
+	@echo "... spline.o"
+	@echo "... spline.i"
+	@echo "... spline.s"
 .PHONY : help
 
 

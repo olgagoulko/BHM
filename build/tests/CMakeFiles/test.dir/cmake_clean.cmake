@@ -1,5 +1,5 @@
 FILE(REMOVE_RECURSE
-  "CMakeFiles/test.dir/divergence_test.cpp.o"
+  "CMakeFiles/test.dir/basic_unittest.cpp.o"
   "test.pdb"
   "test"
 )

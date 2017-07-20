@@ -13,6 +13,7 @@ private:
 public:
 	
 	excessBin();
+	excessBin(long theExcessCounter, double theSumExcessValues);
 	
 	int getExcessCounter() const {return excessCounter;}
 	double getExcessValues(double norm = 1.) const {return sumExcessValues/norm;}
@@ -67,6 +68,7 @@ public:
 	
 	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
 	virtual basisSlot* Clone() { return new basisSlot(*this);}
+	virtual ~basisSlot() {}
 	
 	virtual void initializeGramSchmidt();
 	
@@ -80,11 +82,12 @@ public:
 	bool addAnotherSlot(basisSlot* anotherSlot, int sign = 1);
 	void combineWithSlot(basisSlot* anotherSlot);
 	void scale(long norm);
+	void normalize(double norm);
 	
 	long getNumberTimesSampled() const {return numberTimesSampled;}
 	slotBounds getBounds() const {return bounds;}
 	
-	void updateEnoughSampled(int minNumberTimesSampled = 10);
+	void updateEnoughSampled(int minNumberTimesSampled = defaultMinNumberTimesSampled);
 	bool enoughSampled() const {return enoughData;}
 	
 	double sampledIntegral() const;
@@ -98,8 +101,6 @@ public:
 	void printSlotInfo() const;
 	void printGramSchmidtCoeffs() const;
 	void printSampledCoeffs() const;
-	virtual void printSampledFunction(double norm) const {std::cout << std::fixed << std::setprecision(8) << sampledCoeffsValues[0]/norm;}
-	virtual void printBoundaries() const {std::cout << std::endl;}
 	
 }; 
 
@@ -111,6 +112,7 @@ public:
 	
 	taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
 	taylorSlot* Clone() { return new taylorSlot(*this);}
+	~taylorSlot() {}
 	
 	void initializeGramSchmidt();
 	
@@ -128,6 +130,7 @@ public:
 	
 	sqrtSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
 	sqrtSlot* Clone() { return new sqrtSlot(*this);}
+	~sqrtSlot() {}
 	
 	double GramSchmidtBasisFn(int numOfBasisFn, double variable) const;
 	double bareBasisFn(int numOfBasisFn, double variable) const;

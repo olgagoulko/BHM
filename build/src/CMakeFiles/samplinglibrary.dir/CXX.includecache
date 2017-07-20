@@ -55,8 +55,8 @@ basic.hpp
 /home/olga/Documents/sampling/src/basic.hpp
 slot.hpp
 /home/olga/Documents/sampling/src/slot.hpp
-matrix.hpp
-/home/olga/Documents/sampling/src/matrix.hpp
+spline.hpp
+/home/olga/Documents/sampling/src/spline.hpp
 histogram.hpp
 /home/olga/Documents/sampling/src/histogram.hpp
 
@@ -65,18 +65,26 @@ basic.hpp
 /home/olga/Documents/sampling/src/basic.hpp
 slot.hpp
 /home/olga/Documents/sampling/src/slot.hpp
-matrix.hpp
-/home/olga/Documents/sampling/src/matrix.hpp
+spline.hpp
+/home/olga/Documents/sampling/src/spline.hpp
 
-/home/olga/Documents/sampling/src/matrix.hpp
+/home/olga/Documents/sampling/src/slot.hpp
+basic.hpp
+/home/olga/Documents/sampling/src/basic.hpp
+
+/home/olga/Documents/sampling/src/spline.cpp
 basic.hpp
 /home/olga/Documents/sampling/src/basic.hpp
 slot.hpp
 /home/olga/Documents/sampling/src/slot.hpp
+spline.hpp
+/home/olga/Documents/sampling/src/spline.hpp
 
-/home/olga/Documents/sampling/src/slot.hpp
+/home/olga/Documents/sampling/src/spline.hpp
 basic.hpp
 /home/olga/Documents/sampling/src/basic.hpp
+slot.hpp
+/home/olga/Documents/sampling/src/slot.hpp
 
 /usr/local/include/gsl/gsl_blas.h
 gsl/gsl_vector.h

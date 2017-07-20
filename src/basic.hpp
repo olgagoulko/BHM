@@ -32,6 +32,8 @@
 #define ACCURACY 1e-9
 #define SVD_THRESHOLD 1e-12
 
+#define defaultMinNumberTimesSampled 100
+
 //aliases
 
 
@@ -39,11 +41,11 @@
 //extern double someGlobalParameter;
 
 //convenience functions
-double get_option(int inputN,char *inputV[],char *was);		//Passing options when starting program, e.g. as ./polaron -option1 5.0 -option2 1.0 ...
+double get_option(int inputN,char *inputV[],char *was);		//Passing options when starting program, e.g. as ./sampling -option1 5.0 -option2 1.0 ...
 bool acceptreject(double probability, gsl_rng* RNG);		//whether to accept or reject update according to probability
 bool isAround(double whatWeHave, double whatItShouldBe, double accuracy = ACCURACY);
 int whatsign(double a);
-int rounding(double a);						//Only works for positive numbers!!!
+int rounding(double a);
 long unsigned int rdtsc();					//generates RNG seed by measuring the total pseudo-cycles since the processor was powered on
 
 

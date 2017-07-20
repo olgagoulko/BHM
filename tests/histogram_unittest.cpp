@@ -1,12 +1,13 @@
 #include "histogram.hpp"
 #include "basic.hpp"
 #include "slot.hpp"
+#include "spline.hpp"
 #include "sput.h"
 
 using namespace std; 
 
 static void test_histogram()
-{ 
+{
 	double minVar=0; double maxVar=5; double slotWidth=0.5; int numberOverlaps=5; int totalNumOfBasisFn=4;
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
 	histogramBasis myTestHistogram(histogramVector);
@@ -42,18 +43,32 @@ static void test_histogram()
 	numberOverlaps=1; totalNumOfBasisFn=2;
 	vector<basisSlot*> histogramVector2=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
 	histogramBasis myTestHistogram2(histogramVector2);
+	vector<basisSlot*> histogramVector3=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
+	histogramBasis myTestHistogram3(histogramVector3);
 	myTestHistogram2.sample(0.61, 3.0);
+	myTestHistogram3.sampleUniform(0.61, 3.0);
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(10.).first  == 0, "0 in excess bin");
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(0.4).first == 0, "0 at 0.4 where not sampled");
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(1.1).first == 0, "0 at 1.1 where not sampled");
 	sput_fail_unless(myTestHistogram2.sampledFunctionValueAverage(1.1).second == 0, "error 0 where not sampled");
 	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.5).first,804./50.), "value at 0.5");
 	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.9).first,-12./250.), "value at 0.9");
-
+	double stepWidth=0.01; double variable=minVar+stepWidth/2.;
+	while(variable<maxVar)
+		{
+		myTestHistogram2.sample(variable,variable*variable);
+		myTestHistogram3.sampleUniform(variable,variable*variable);
+		variable+=stepWidth;
+		}
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0).first,myTestHistogram3.sampledFunctionValueAverage(0).first), "uniform sample same as sample");
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(0.9).first,myTestHistogram3.sampledFunctionValueAverage(0.9).first), "uniform sample same as sample");
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(2.5).first,myTestHistogram3.sampledFunctionValueAverage(2.5).first), "uniform sample same as sample");
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(4.9).first,myTestHistogram3.sampledFunctionValueAverage(4.9).first), "uniform sample same as sample");
+	sput_fail_unless(isAround(myTestHistogram2.sampledFunctionValueAverage(5.0).first,myTestHistogram3.sampledFunctionValueAverage(5.0).first), "uniform sample same as sample");
 }
 
 static void test_combinedSlot()
-{ 
+	{ 
 	double lowerBound=1.; double upperBound=2.5; double middleBound=1.2;
 	
 	slotBounds bounds1(lowerBound, upperBound);
@@ -72,10 +87,10 @@ static void test_combinedSlot()
 	
 	double stepWidth=0.001; double variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
-	{
+		{
 		myTestHistogram.sample(variable,cos(variable)*(upperBound-lowerBound));
 		variable+=stepWidth;
-	}
+		}
 	
 	basisSlot* combo=myTestHistogram.combinedSlot(1, 2);
 	
@@ -94,10 +109,10 @@ static void test_combinedSlot()
 	
 	variable=lowerBound+stepWidth/2.;
 	while(variable<upperBound)
-	{
+		{
 		myTestHistogram2.sample(variable,1 - 3*variable/2. + 2*variable*variable - variable*variable*variable/2.);
 		variable+=stepWidth;
-	}
+		}
 	
 	combo=myTestHistogram2.combinedSlot(4, 9);
 	sput_fail_unless(isAround(combo -> sampledIntegral(),(myTestHistogram2.getSlot(15) -> sampledIntegral())), "big combinedSlot integral is the same as when originally sampled");
@@ -147,9 +162,10 @@ static void test_combinedSlot()
 int main(int argc, char **argv) {
 	
 	sput_start_testing();
-	
+
 	sput_enter_suite("test_histogram()");
 	sput_run_test(test_histogram);
+	
 	sput_enter_suite("test_combinedSlot()");
 	sput_run_test(test_combinedSlot);
 	

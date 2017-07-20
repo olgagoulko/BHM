@@ -4,7 +4,7 @@ SET(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 SET(CMAKE_DEPENDS_CHECK_CXX
-  "/home/olga/Documents/sampling/tests/divergence_test.cpp" "/home/olga/Documents/sampling/build/tests/CMakeFiles/test.dir/divergence_test.cpp.o"
+  "/home/olga/Documents/sampling/tests/basic_unittest.cpp" "/home/olga/Documents/sampling/build/tests/CMakeFiles/test.dir/basic_unittest.cpp.o"
   )
 SET(CMAKE_CXX_COMPILER_ID "GNU")
 

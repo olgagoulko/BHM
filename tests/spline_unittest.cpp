@@ -1,5 +1,5 @@
 #include "basic.hpp"
-#include "matrix.hpp"
+#include "spline.hpp"
 #include "histogram.hpp"
 #include "sput.h"
 
@@ -12,9 +12,9 @@ static void test_spline()
 	unsigned int defaultSplineOrder=4;
 	vector<double> mySplineCoeffs;
 	for(unsigned int i=0;i<defaultSplineOrder;i++) mySplineCoeffs.push_back(i*0.5+1);
-	spline myTestSpline(myTestBounds,defaultSplineOrder);
+	splinePiece myTestSpline(myTestBounds,defaultSplineOrder);
 	vector<double> covarianceDummy; covarianceDummy.resize(defaultSplineOrder*defaultSplineOrder);
-	myTestSpline.setSpline(mySplineCoeffs,covarianceDummy);
+	myTestSpline.setSplinePiece(mySplineCoeffs,covarianceDummy);
 	
 	sput_fail_unless(myTestSpline.splineValue(1.)==7, "correct spline value at 1");
 	sput_fail_unless(myTestSpline.splineValue(1.5)==16.1875, "correct spline value at 1.5");
@@ -24,24 +24,13 @@ static void test_spline()
 	sput_fail_unless(myTestSpline.splineIntegral(smallerBounds)==4505./384., "correct spline integral between 1.5 and 2");
 	
 	mySplineCoeffs[0]=20; mySplineCoeffs[3]=-10;
-	myTestSpline.setSpline(mySplineCoeffs,covarianceDummy);
+	myTestSpline.setSplinePiece(mySplineCoeffs,covarianceDummy);
 	sput_fail_unless(myTestSpline.splineValue(2.5)==-120., "correct updated spline value at 2.5");
 	
 }
 
 static void test_matrix()
 {
-	unsigned int vectorSize=20;
-	double* matrix=secondDerivativeMatrix(vectorSize);
-	double vector[vectorSize];
-	for(unsigned int i=0;i<vectorSize;i++) {vector[i]=exp(-0.2*i); matrix[i*vectorSize+i]=6.0+0.1*i;}
-	solveLinearEquation(matrix,vector,vectorSize);
-	
-	sput_fail_unless(isAround(vector[0],0.22736688298553243), "linear equation solution element 0");
-	sput_fail_unless(isAround(vector[1],0.8812052347569486), "linear equation solution element 1");
-	sput_fail_unless(isAround(vector[12],0.07413666340407474), "linear equation solution element 12");
-	sput_fail_unless(isAround(vector[19],0.003157054968750365), "linear equation solution element 19");
-	
 	int binMatSize=6;
 	double* binomMatrix=binomialMatrix(binMatSize);
 
@@ -103,19 +92,6 @@ static void test_chisq()
 	solveLinearEquation(a_data, b_data, 4);
 	sput_fail_unless(isAround(b_data[0],-4.05205,0.00001)&&isAround(b_data[3],8.69377,0.00001), "linear equation solver");
 	
-	//write proper BHM test for regular kind of sampling
-	/*vector< double > dummy; vector<slotBounds> testBoundsVector; testBoundsVector.push_back(myTestBounds);
-	vector< vector< basisSlot* > > currentAnalysisBins=myTestHistogram.binHierarchy(3200);// currentAnalysisBins.push_back(allAnalysisSlots);
-	splineArray roughSpline=matchedSplineFit(currentAnalysisBins, testBoundsVector, defaultSplineOrder, 0, dummy, dummy);
-	cout << roughSpline.splineValue(1) << '\t' << roughSpline.splineValue(2) << endl;
-	sput_fail_unless(isAround(roughSpline.splineValue(1.),0.999999958333), "check spline value at 1");
-	sput_fail_unless(isAround(roughSpline.splineValue(2.),2.00000008333), "check spline value at 2");
-	sput_fail_unless(isAround(roughSpline.splineValue(3.),1.00000020833), "check spline value at 3");
-	sput_fail_unless(isAround(roughSpline.splineError(1.),0.0189717548741), "check spline error at 1");
-	sput_fail_unless(isAround(roughSpline.splineError(2.),0.00354588503348), "check spline error at 2");
-	sput_fail_unless(isAround(roughSpline.splineError(3.),0.0214103328672), "check spline error at 3");
-	sput_fail_unless(isAround(roughSpline.getChisquared(),0), "check spline chi^2");*/
-	
 	double a_tonullify[]= {6.881737852316666e9, 1.804944376798533e8, -3.987145745998773e7, 6.611225244750259e8, 2.812625188625582e8,
 		1.863234860715052e8, 4.947682846340233e6, -1.0813733676412262e6, 1.7904516220312424e7, 7.610831122786341e6,
 		-9.293121263062338e8, -2.4406545147881947e7, 5.385261254688273e6, -8.928065050991334e7, -3.797944454921767e7,
@@ -133,9 +109,8 @@ static void test_chisq()
 	gsl_matrix * V = gsl_matrix_alloc (5, 5);
 	gsl_vector * diagonal = gsl_vector_alloc (5);
 	gsl_vector *x = gsl_vector_alloc (5);
-	double chisq = solveSVD(&gslU.matrix, V, &gslb.vector, diagonal, x);
+	solveSVD(&gslU.matrix, V, &gslb.vector, diagonal, x);
 	
-	sput_fail_unless(isAround(chisq,414.09367967,1e-7), "SVD produces correct chi^2");
 	sput_fail_unless(isAround(gsl_vector_get(diagonal,0),1e10), "SVD singular value matches");
 	sput_fail_unless(isAround(gsl_vector_get(diagonal,2),25.), "SVD singular value matches");
 	sput_fail_unless(isAround(gsl_vector_get(diagonal,4),0), "smallest singular value was nullified");

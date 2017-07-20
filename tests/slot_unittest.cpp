@@ -77,7 +77,7 @@ static void test_taylorSlot()
 	sput_fail_unless(isAround(myTestSlot.sampledFunctionError(1.8),3*sqrt(27.8)/2.), "sampled function error at 1.8");
 	
 	myTestSlot.updateEnoughSampled();
-	sput_fail_unless(myTestSlot.enoughSampled()==false, "sampled fewer than 10 times");
+	sput_fail_unless(myTestSlot.enoughSampled()==false, "sampled fewer times than default");
 	
 	lowerBound=5.; upperBound=6.;
 	slotBounds myTestBounds2(lowerBound, upperBound);
@@ -94,6 +94,7 @@ static void test_sampleFunction()
 	{
 	double lowerBound=3.2; double upperBound=3.8; double intervalSize=upperBound-lowerBound;
 	slotBounds myTestBounds(lowerBound, upperBound);
+	
 	int myTestNumberOfBasisFn=4;
 	taylorSlot myTestSlot(myTestBounds, myTestNumberOfBasisFn);
 	taylorSlot totalSlot(myTestBounds, myTestNumberOfBasisFn);

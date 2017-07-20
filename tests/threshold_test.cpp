@@ -1,5 +1,5 @@
 #include "histogram.hpp"
-#include "matrix.hpp"
+#include "spline.hpp"
 #include "basic.hpp"
 #include "slot.hpp"
 
@@ -16,9 +16,9 @@ double testFunction(double variable)
 
 int main(int argc, char **argv) {
 	
-	cout << "----------------- Production test: full default routine ----------------" << endl;
+	cout << "----------------- Testing effect of goodness-of-fit threshold ----------------" << endl;
 	
-	long unsigned int seed=6482555;//956475;
+	long unsigned int seed=956475;
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
 	gsl_rng_set (RNG, seed);
 	
@@ -29,21 +29,10 @@ int main(int argc, char **argv) {
 	double intervalSize=2.0;
 	double minVar=1.; double maxVar=2.8;
 	double slotWidth=(maxVar-minVar)/pow(2.,10); int numberOverlaps=1; int totalNumOfBasisFn=0;
-	double printStep=0.02; int numSteps=int((maxVar-minVar)/printStep);
+	double printStep=0.01; int numSteps=int((maxVar-minVar)/printStep);
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
-	double currentVar;
 	histogramBasis binHistogram(histogramVector);
 	
-	ofstream output("histogram_testoutput.dat");
-	
-	/*for(int round=0;round<57;round++) for(int i=0; i<samplingSteps;i++) {bool accept=false;
-		while(accept==false)
-		{
-			variable=gsl_rng_uniform(RNG)*intervalSize+minVar;
-			random=gsl_rng_uniform(RNG)*testFunctionMax;
-			if(random<abs(testFunction(variable))) accept=true;
-		}}*/
-
 	for(int i=0; i<samplingSteps;i++)
 		{
 		bool accept=false;
@@ -53,31 +42,28 @@ int main(int argc, char **argv) {
 			random=gsl_rng_uniform(RNG)*testFunctionMax;
 			if(random<abs(testFunction(variable))) accept=true;
 			}
-		binHistogram.sample(variable,whatsign(testFunction(variable)));
+		binHistogram.sampleUniform(variable,whatsign(testFunction(variable)));
 		}
 		
 	int goodElementaryBins=0; for(unsigned int i=0;i<pow(2.,10);i++) {histogramVector[i] -> updateEnoughSampled(); goodElementaryBins+=histogramVector[i] -> enoughSampled();}
 	cout << "Good elementary bins = " << goodElementaryBins << endl; cout << endl;
+	
+	ofstream output("histogram_testoutput.dat");
 			
 	double threshold=0;
 	for(int round=0;round<30;round++)
 		{
-		splineArray testNewRoutine2 = binHistogram.splineProcedure2(4, 2, samplingSteps, threshold, 0);
-		cout << "new procedure: " << testNewRoutine2.getAcceptance() << '\t' << threshold << '\t' << testNewRoutine2.numberKnots() << endl;
-		//cout << endl; testNewRoutine2.printSplineArrayInfo(); cout << endl;
-		//testNewRoutine2.printSplines(); cout << endl;
-		//bool acceptance=testNewRoutine2.getAcceptance();
-		splineArray testcurvature = binHistogram.splineProcedure(4, 2, samplingSteps, threshold, 0);
-		cout << "old procedure: " << testcurvature.getAcceptance() << '\t' << threshold << '\t' << testcurvature.numberKnots() << endl;
-		//cout << endl; testcurvature.printSplineArrayInfo(); cout << endl;
-		//testcurvature.printSplines(); cout << endl;
+		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
+		cout << "BHM fit: " << testBHMfit.getAcceptance() << '\t' << threshold << '\t' << testBHMfit.numberKnots() << endl;
+		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1);
+		cout << "Jump suppression: " << testJumpSuppression.getAcceptance() << '\t' << threshold << '\t' << testJumpSuppression.numberKnots() << endl;
 		
 		for(int i=0; i<numSteps;i++) 
 			{
-			currentVar=minVar+i*printStep+printStep/2;
+			variable=minVar+i*printStep;
 
-			output << currentVar << '\t' << testNewRoutine2.splineValue(currentVar) << '\t' << testNewRoutine2.splineError(currentVar) << '\t'
-			<< testcurvature.splineValue(currentVar) << '\t' << testcurvature.splineError(currentVar) << " 0 0" << endl;
+			output << variable << '\t' << testBHMfit.splineValue(variable) << '\t' << testBHMfit.splineError(variable) << '\t'
+			<< testJumpSuppression.splineValue(variable) << '\t' << testJumpSuppression.splineError(variable) << endl;
 			}
 		output << endl; output << endl;
 				
