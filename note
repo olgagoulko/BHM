@@ -1,15 +1,9 @@
-scr: contains code
-tests: contains unit tests and other tests
-test output in build directory
+histogram.cpp:  
 
-unit tests: change CMake file in tests directory to contain desired unittest; build test; run test as application
-
-slot.cpp: definition of basis slot; has bounds and basis function set (special case, just one function); stores sampled values -> need variance too
-
-histogram.cpp:
 	histogram is just a collection of basis slots -> can be anything, also overlapping
 	generate basis slots default routine to create histogram: overlap possible but not necessary
 	overlap scheme (this example has overlap 3)
+	
 	|-       |
 	|--      |
 	|---     |
@@ -20,10 +14,6 @@ histogram.cpp:
 	|     ---|
 	|      --|
 	|       -|
-	when multiple overlapping basis slots, take average value for final function value (this has been tested in sampling.nb -> weighted average or accounting for covariance doesn't improve much)
+	
+	when multiple overlapping basis slots, take average value for final function value 
 
-basis functions are normalized so that integral is 1, for flat histogram this implies 1/slotwidth basis value
-this means that if we want actual average function value (and this is crucial if we want to average over different slots with different widths) we need to multiply by slotwidth before output
-this has now been implemented
-if integral is desired instead, just take average function value times slotwidth again in the end -- for non-overlapping non-basis histograms this doesn't really matter, only trivial scaling
-need to properly implement integrals with non-trivial basis
