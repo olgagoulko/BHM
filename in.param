@@ -1,0 +1,8 @@
+DATAPOINTSMIN=100		#minimal number of data points per bin
+SPLINEORDER=4			#spline order (which format?)
+MINLEVEL=2               	#minimal number of levels per interval (maybe not necessary?)
+THRESHOLD=2			#minimal goodness of fit threshold
+THRESHOLDMAX=4        		#maximal goodness of fit threshold
+JUMPSUPPRESSION=false		#suppression of highest order derivative (warn that error unreliable)
+VERBOSE=true		 	#verbose output
+DATA="input.dat"		#location of data file
