@@ -19,6 +19,6 @@ include_directories(
 add_library (samplinglibrary basic.cpp spline.cpp slot.cpp histogram.cpp histogram.hpp slot.hpp spline.hpp basic.hpp)
 add_executable(main main.cpp)
     
-target_link_libraries(main samplinglibrary ${GSL_LIBRARIES})
+target_link_libraries(main samplinglibrary ${GSL_LIBRARIES} libiniparser)
 
 install(TARGETS main RUNTIME DESTINATION bin)
