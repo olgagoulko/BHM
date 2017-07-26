@@ -384,7 +384,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression)
+splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose)
 	{
 	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
 		

@@ -3,6 +3,8 @@
 #include "basic.hpp"
 #include "slot.hpp"
 
+#include "iniparser_frontend.hpp"
+
 using namespace std;
 
 //definitions of several test functions with corresponding domains and possible basis for basis projection sampling
@@ -107,9 +109,25 @@ public:
 };
 
 
+static std::ostream& print_help(const char* argv0, std::ostream& strm) {
+        strm
+            << "FIXME!!! Meaningful help should be printed here\n"
+            << "Usage:\n" << argv0 << " param_file.ini"
+            << std::endl;
+
+        return strm;
+}
+            
+
 
 int main(int argc, char **argv) {
-	
+
+        if (argc!=2) {
+            print_help(argv[0], std::cerr);
+            return 1;
+        }
+        iniparser::param par(argv[1]); // FIXME: can throw!
+
 	cout << "----------------- Example BHM code ----------------" << endl;
 	
 	long unsigned int seed=956475;//time(NULL);
@@ -118,8 +136,6 @@ int main(int argc, char **argv) {
 	
 	//adjust parameters ---------------------------------------------
 	long samplingSteps=1e4;
-	unsigned int splineOrder=4;
-	unsigned int minLevel=2;
 	testFunctionExp myTestFunction;	//select which function to use here
 	//---------------------------------------------------------------
 	
@@ -148,17 +164,49 @@ int main(int argc, char **argv) {
 		binHistogram.sampleUniform(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		basisHistogram.sample(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		}
-	
-	cout << endl; cout << "BHM fit:" << endl;
-	double threshold=2; double jumpSuppression=0;
-	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps, threshold, jumpSuppression);
+
+        int splinePolynomialOrder=par.get(":SplineOrder", 4);
+        if (splinePolynomialOrder<0) {
+            std::cerr << "Polynomial order cannot be less than 0" << std::endl;
+            return 1;
+        }
+        unsigned int splineOrder=splinePolynomialOrder+1; // number of polynomial coefficients
+        
+	unsigned int minLevel=par.get(":MinLevel", 2);
+        if (minLevel<2) {
+            std::cerr << "Warning: MINLEVEL must be at least 2, resetting it to 2";
+            minLevel=2;
+        }
+
+	double threshold=par.get(":Threshold", 2.0);
+
+        bool enableJumpSuppression=par.get(":JumpSuppression", false);
+        double jumpSuppression=enableJumpSuppression? 0 : 1.0;
+
+        bool verbose=par.get(":verbose", true);
+
+        if (verbose) {
+            std::cout << std::boolalpha
+                      << "Input parameters:\n"
+                      << "SplineOrder = " << splineOrder-1 << " # spline order\n"
+                      << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
+                      << "Threshold = " << threshold << " # minimal goodness-of-fit threshold\n"
+                      << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
+                      << "Verbose = " << verbose << "# verbose output"
+                      << std::endl;
+        }
+        
+	cout << endl << "BHM fit:" << endl;
+	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps, threshold, jumpSuppression, verbose);
 	cout << endl;
 	cout << "acceptable fit = " << testBHMfit.getAcceptance() << endl; cout << endl;
 	cout << "Printing spline:" << endl;
 	testBHMfit.printSplineArrayInfo(); cout << endl;
 	testBHMfit.printSplines(); 
 	cout << endl;
-	
+
+#if 0
+        
 	cout << "BHM fit with highest derivative jump suppression:" << endl;
 	jumpSuppression=1;
 	splineArray testJumpSuppression = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps, threshold, jumpSuppression);
@@ -188,7 +236,7 @@ int main(int argc, char **argv) {
 	
 	
 	cout << "---------------------------------- Testing finished -------------------------------------" << endl;
-	
+#endif	
 	return 0;
 	
 }

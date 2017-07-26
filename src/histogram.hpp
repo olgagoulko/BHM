@@ -44,7 +44,7 @@ public:
 	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
 	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm);
-	splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression);
+    splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose);
 	
 };
 
