@@ -20,11 +20,17 @@ message("GSL libraries:" ${GSL_LIBRARIES})
 include_directories(
     ${GSL_INCLUDE_DIR}
     . .. ../src
-    )
+)
 
-add_executable(maintest basic_unittest.cpp sput.h)
-add_test(NAME maintest COMMAND maintest)
+macro(bhm_add_test name src)
+  add_executable(${name} ${src})
+  add_test(NAME ${name} COMMAND ${name})
+  target_link_libraries(${name} samplinglibrary ${GSL_LIBRARIES} libiniparser)
+  install(TARGETS ${name} RUNTIME DESTINATION bin)
+endmacro()
 
-target_link_libraries(maintest samplinglibrary ${GSL_LIBRARIES})
+# we need a sample input in the test binary directory
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sample.param ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
-install(TARGETS maintest RUNTIME DESTINATION bin)
+bhm_add_test(maintest basic_unittest.cpp)
+bhm_add_test(iniparser iniparser.cpp)
