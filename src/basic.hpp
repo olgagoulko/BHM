@@ -1,8 +1,7 @@
 //Includes parameters and basic definitions needed for all subroutines
 
-#ifndef BASIC_HPP
-#define BASIC_HPP
-
+#ifndef BASIC_HPP_cdce02947f3f4772ad67a5420fdedf42
+#define BASIC_HPP_cdce02947f3f4772ad67a5420fdedf42
 
 #include <iostream>
 #include <fstream>
@@ -48,5 +47,7 @@ int whatsign(double a);
 int rounding(double a);
 long unsigned int rdtsc();					//generates RNG seed by measuring the total pseudo-cycles since the processor was powered on
 
+/// verbosity level
+enum verbosity_level_type { CONCISE=0, VERBOSE=1 };
 
-#endif
+#endif /* BASIC_HPP_cdce02947f3f4772ad67a5420fdedf42 */

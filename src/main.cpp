@@ -184,7 +184,24 @@ int main(int argc, char **argv) {
         double jumpSuppression=enableJumpSuppression? 0 : 1.0;
 
         bool verbose=par.get(":verbose", true);
+        bool fail_if_bad=par.get(":FailOnBadFit", true);
+        bool fail_if_zero=par.get(":FailOnZeroFit", false);
+        bool print_fit=par.get(":PrintFitInfo", false);
 
+        std::string outfile_name=par.get(":OutputName","");
+        if (outfile_name.empty()) {
+            std::cerr << "Output file name must be provided via 'OutputName' parameter"
+                      << std::endl;
+            return 1;
+        }
+
+        std::ofstream outfile(outfile_name.c_str());
+        if (!outfile) {
+            std::cerr << "Cannot open output file '" << outfile_name << "'"
+                      << std::endl;
+            return 1;
+        }
+        
         if (verbose) {
             std::cout << std::boolalpha
                       << "Input parameters:\n"
@@ -192,18 +209,26 @@ int main(int argc, char **argv) {
                       << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
                       << "Threshold = " << threshold << " # minimal goodness-of-fit threshold\n"
                       << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
-                      << "Verbose = " << verbose << "# verbose output"
+                      << "Verbose = " << verbose << "# verbose output\n"
+                      << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"
+                      << "FailOnBadFit = " << fail_if_bad << "# do not proceed if the fit is bad\n"
+                      << "PrintFitInfo = " << print_fit << "# print the fit information\n"
                       << std::endl;
         }
         
 	cout << endl << "BHM fit:" << endl;
 	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps, threshold, jumpSuppression, verbose);
 	cout << endl;
-	cout << "acceptable fit = " << testBHMfit.getAcceptance() << endl; cout << endl;
-	cout << "Printing spline:" << endl;
-	testBHMfit.printSplineArrayInfo(); cout << endl;
-	testBHMfit.printSplines(); 
-	cout << endl;
+        if (!testBHMfit.getAcceptance()) {
+            if (verbose) std::cout << "WARNING: no acceptable fit found" << std::endl;
+            if (fail_if_bad) return 2;
+        }
+        if (print_fit) {
+            testBHMfit.printSplineArrayInfo(std::cout); cout << endl;
+        }
+        
+	testBHMfit.printSplines(outfile);
+        
 
 #if 0
         

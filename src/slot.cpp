@@ -1,6 +1,8 @@
 #include "basic.hpp"
 #include "slot.hpp"
 
+#include <stdexcept>
+
 using namespace std;
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -64,12 +66,27 @@ double slotBounds::slotWidth() const
 	return width;
 	}
 
-void slotBounds::printBoundsInfo() const
+std::ostream& slotBounds::printBoundsInfo(std::ostream& strm, verbosity_level_type vlevel) const
 	{
-	cout << fixed << setprecision(16) << "lowerBound = " << lowerBound << endl;
-	if(noUpperBound) cout << "no upper bound" << endl;
-	else cout << fixed << setprecision(16) << "upperBound = " << upperBound << endl;
-	}
+        if (vlevel==VERBOSE) {
+            strm << "lowerBound = " << fixed << setprecision(16) << lowerBound << endl;
+            if (noUpperBound) {
+                strm << "no upper bound" << endl;
+            } else {
+                strm << "upperBound = " << upperBound << endl;
+            }
+        } else /* not VERBOSE */ {
+            strm << scientific << setprecision(6)
+                 << lowerBound
+                 << " ";
+            if (noUpperBound) {
+                strm << "INF" << endl;
+            } else {
+                strm << upperBound << endl;
+            }
+        }
+        return strm;
+        }
 
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -107,7 +124,11 @@ void basisSlot::initializeGramSchmidt()
 				{
 				newnorm+=GramSchmidtCoeffs[i][j1]*GramSchmidtCoeffs[i][j2]*pairwiseIntegral(j1,j2);
 				}
-		if(newnorm<=0) {cout << "ERROR: negative norm in Gram-Schmidt initialization in function number " << i << endl; printSlotInfo(); exit(EXIT_FAILURE);}
+		if(newnorm<=0) {
+                    cerr << "ERROR: negative norm in Gram-Schmidt initialization in function number " << i << endl;
+                    printSlotInfo(std::cerr);
+                    throw std::runtime_error("ERROR: negative norm in Gram-Schmidt initialization in function number");
+                }
 		newnorm=sqrt(newnorm);
 		for(int j1=0; j1<=i; j1++) GramSchmidtCoeffs[i][j1]=GramSchmidtCoeffs[i][j1]/newnorm;
 		for(int j1=i+1; j1<totalNumOfBasisFn; j1++)
@@ -297,10 +318,11 @@ vector<double> basisSlot::bareBasisSampledCoeffs() const
 	return result;
 	}
 
-void basisSlot::printSlotInfo() const
+std::ostream& basisSlot::printSlotInfo(std::ostream& strm) const
 	{
-	bounds.printBoundsInfo();
-	cout << "totalNumOfBasisFn = " << totalNumOfBasisFn << endl;
+        bounds.printBoundsInfo(strm, VERBOSE);
+	strm << "totalNumOfBasisFn = " << totalNumOfBasisFn << endl;
+        return strm;
 	}
 
 
@@ -351,7 +373,13 @@ double taylorSlot::GramSchmidtBasisFn(int numOfBasisFn, double variable) const
 	if(abs(shiftedvariable)>1)
 		{
 		if(isAround(abs(shiftedvariable),1)) {if(shiftedvariable>1) shiftedvariable=1; else shiftedvariable=-1;}
-		else {cout << "ERROR: wrong variable in taylorSlot; variable = " << variable << ", number basis function = " << numOfBasisFn << endl; printSlotInfo(); exit(EXIT_FAILURE);}
+		else {
+                    std::cerr << "ERROR: wrong variable in taylorSlot; variable = " << variable
+                              << ", number basis function = " << numOfBasisFn
+                              << endl;
+                    printSlotInfo(std::cerr);
+                    throw std::runtime_error("ERROR: wrong variable in taylorSlot");
+                }
 		}
 	
 	return sqrt(2*numOfBasisFn+1)*gsl_sf_legendre_Pl (numOfBasisFn, shiftedvariable)/sqrt(bounds.slotWidth());

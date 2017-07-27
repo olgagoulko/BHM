@@ -6,4 +6,7 @@ THRESHOLDMAX=4.0       		#maximal goodness of fit threshold
 THRESHOLDSTEPS=3               #number of steps to take from THRESHOLD to THRESHOLDMAX
 JUMPSUPPRESSION=false		#suppression of highest order derivative (warn that error unreliable)
 VERBOSE=true		 	#verbose output
+PrintFitInfo=true 
+FailOnBadFit=true               #do not proceed if the fit is bad or data is consistent with zero
 DATA="input.dat"                #location of data file
+OutputName="output.dat"         #location of the output file

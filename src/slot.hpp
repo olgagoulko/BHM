@@ -45,7 +45,7 @@ public:
 	bool overlapping(const slotBounds& compareBounds) const;
 	double slotWidth() const;
 	
-	void printBoundsInfo() const;
+        std::ostream& printBoundsInfo(std::ostream& strm, verbosity_level_type vlevel) const;
 	
 };
 
@@ -98,7 +98,7 @@ public:
 	double sampledFunctionError(double variable) const;
 	std::vector<double> bareBasisSampledCoeffs() const;
 	
-	void printSlotInfo() const;
+	std::ostream& printSlotInfo(std::ostream&) const;
 	void printGramSchmidtCoeffs() const;
 	void printSampledCoeffs() const;
 	

@@ -116,15 +116,16 @@ double splinePiece::splineDerivative(double variable, unsigned int derivativeOrd
 	}
 
 
-void splinePiece::printSplinePiece() const
+std::ostream& splinePiece::printSplinePiece(std::ostream& strm) const
 	{
-	bounds.printBoundsInfo();
-	cout << "spline piece order: " << splineOrder << endl;
-	cout << "spline piece coefficients and error coefficients" << endl;
-	for(unsigned int i=0;i<splineOrder;i++) cout << setprecision(10) << splineCoefficients[i] << '\t';
-	cout << endl;
-	for(unsigned int i=0;i<2*splineOrder-1;i++) cout << setprecision(10) << splineErrorCoefficients[i] << '\t';
-	cout << endl;
+	bounds.printBoundsInfo(strm, CONCISE);
+	// strm << "spline piece order: " << splineOrder << endl;
+	// strm << "spline piece coefficients and error coefficients" << endl;
+	for(unsigned int i=0;i<splineOrder;i++) strm << setprecision(10) << splineCoefficients[i] << " ";
+	strm << endl;
+	for(unsigned int i=0;i<2*splineOrder-1;i++) strm << setprecision(10) << splineErrorCoefficients[i] << " ";
+	strm << endl;
+        return strm;
 	}
 
 splineArray::splineArray()
@@ -267,7 +268,8 @@ double splineArray::splineError(double variable) const
 
 double splineArray::splineDerivative(double variable, unsigned int derivativeOrder) const
 	{
-	bool foundSpline; double result;
+	bool foundSpline;
+        double result=0;
 	for(unsigned int i=0;i<splines.size();i++)
 		{
 		foundSpline=(splines[i] -> getBounds()).checkIfInBounds(variable);
@@ -276,25 +278,28 @@ double splineArray::splineDerivative(double variable, unsigned int derivativeOrd
 	return result;
 	}
 
-void splineArray::printSplineArrayInfo() const
+std::ostream& splineArray::printSplineArrayInfo(std::ostream& strm) const
 	{
-	cout << "Lower Bound: " << lowerBound << endl;
-	cout << "Upper Bound: " << upperBound << endl;
-	cout << "Spline order: " << splineOrder << endl;
-	cout << left << setw(4) << "level" << '\t' << setw(8) << "n" << '\t'  << setw(12) << "chi_n^2/n" << '\t' << setw(12) << "sqrt(2/n)" << '\t' << setw(12) << "deviation in sqrt(2/n) units" << endl;
+	strm << "##Lower Bound: " << lowerBound << endl;
+	strm << "##Upper Bound: " << upperBound << endl;
+	strm << "##Spline order: " << splineOrder << endl;
+	strm << left << setw(4) << "## level" << '\t' << setw(8) << "n" << '\t'  << setw(12) << "chi_n^2/n" << '\t' << setw(12) << "sqrt(2/n)" << '\t' << setw(12) << "deviation in sqrt(2/n) units" << endl;
 	for(unsigned int i=0;i<levelsChiSquared.size();i++)
-		cout << left << setw(4) << setprecision(10) << i << '\t' << setw(8) <<  levelsDegreesOfFreedom[i] << '\t' << setw(12) << levelsChiSquared[i] << '\t' << setw(12) << sqrt(2./double(levelsDegreesOfFreedom[i])) << '\t' << setw(12) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
+		strm << "#" << left << setw(4) << setprecision(10) << i << '\t' << setw(8) <<  levelsDegreesOfFreedom[i] << '\t' << setw(12) << levelsChiSquared[i] << '\t' << setw(12) << sqrt(2./double(levelsDegreesOfFreedom[i])) << '\t' << setw(12) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
+
+        return strm;
 	}
 
-void splineArray::printSplines() const
+std::ostream& splineArray::printSplines(std::ostream& strm) const
 	{
+	strm << lowerBound << " " << upperBound << " " << (splineOrder-1) << endl;
+        strm << splines.size() << endl;
 	for(unsigned int i=0;i<splines.size();i++)
 		{
-		cout << "Spline Piece " << i << "  -------------------------------------------------------------------" << endl;
-		splines[i] -> printSplinePiece();
-		cout << "-------------------------------------------------------------------------------------------" << endl;
-		cout << endl;
+		strm << "# spline piece " << i << endl;
+		splines[i] -> printSplinePiece(strm);
 		}
+        return strm;
 	}
 
 

@@ -142,9 +142,9 @@ basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int en
 			{
 			if((basisSlots[i] -> getBounds()).overlapping((basisSlots[j] -> getBounds()))) 
 				{
-				cout << "ERROR: trying to combine overlapping slots " << i << " and " << j << endl; 
-				basisSlots[i] -> printSlotInfo(); basisSlots[j] -> printSlotInfo();
-				exit(EXIT_FAILURE);
+				cerr << "ERROR: trying to combine overlapping slots " << i << " and " << j << endl; 
+				basisSlots[i] -> printSlotInfo(cerr); basisSlots[j] -> printSlotInfo(cerr);
+				throw std::runtime_error("ERROR: trying to combine overlapping slots");
 				}
 			}
 		}
