@@ -48,7 +48,7 @@ private:
 	std::vector<double> intervalBoundaries;
 	std::vector<double> levelsChiSquared;
 	std::vector<int> levelsDegreesOfFreedom;
-	bool accetableSpline;
+	bool acceptableSpline;
 	
 public:
 	
@@ -62,7 +62,7 @@ public:
 	void updateGoodness(bool acceptable);
 	
 	splinePiece * getSplinePiece(unsigned int whichPiece) const;
-	bool getAcceptance() const {return accetableSpline;}
+	bool getAcceptance() const {return acceptableSpline;}
 	bool checkOverallAcceptance(double fitAcceptanceThreshold) const;
 	std::vector<slotBounds> getBounds() const;
 	int numberKnots() const {return intervalBoundaries.size();}

@@ -136,7 +136,7 @@ splineArray::splineArray()
 	intervalBoundaries.resize(0);
 	levelsChiSquared.resize(0);
 	levelsDegreesOfFreedom.resize(0);
-	accetableSpline=false;
+	acceptableSpline=false;
 	}
 
 splineArray::splineArray(vector< splinePiece* > theSplines)
@@ -147,7 +147,7 @@ splineArray::splineArray(vector< splinePiece* > theSplines)
 	intervalBoundaries.resize(0);
 	levelsChiSquared.resize(0);
 	levelsDegreesOfFreedom.resize(0);
-	accetableSpline=false;
+	acceptableSpline=false;
 	splines.resize(0);
 	splines.push_back(theSplines[0]);
 	for(unsigned int i=1;i<theSplines.size();i++)
@@ -179,7 +179,7 @@ splineArray& splineArray::operator=(const splineArray& toBeAssigned)
 		upperBound=(splines[splines.size()-1] -> getBounds()).getUpperBound();
 		splineOrder=(splines[0] -> getSplineOrder());
 		updateLevelProperties(toBeAssigned.levelsChiSquared, toBeAssigned.levelsDegreesOfFreedom);
-		accetableSpline=toBeAssigned.accetableSpline;
+		acceptableSpline=toBeAssigned.acceptableSpline;
 		intervalBoundaries=toBeAssigned.intervalBoundaries;
 		}
 	return *this;
@@ -197,7 +197,7 @@ splineArray::splineArray(const splineArray& toBeCopied)
 	upperBound=(splines[splines.size()-1] -> getBounds()).getUpperBound();
 	splineOrder=(splines[0] -> getSplineOrder());
 	updateLevelProperties(toBeCopied.levelsChiSquared, toBeCopied.levelsDegreesOfFreedom);
-	accetableSpline=toBeCopied.accetableSpline;
+	acceptableSpline=toBeCopied.acceptableSpline;
 	intervalBoundaries=toBeCopied.intervalBoundaries;
 	}
 
@@ -215,7 +215,7 @@ void splineArray::updateLevelProperties(std::vector<double> theChisq, std::vecto
 
 void splineArray::updateGoodness(bool acceptable)
 	{
-	accetableSpline=acceptable;
+	acceptableSpline=acceptable;
 	}
 
 
