@@ -32,7 +32,7 @@
 #define ACCURACY 1e-9
 #define SVD_THRESHOLD 1e-12
 
-#define defaultMinNumberTimesSampled 100
+#define defaultMinNumberTimesSampled 10
 
 //aliases
 

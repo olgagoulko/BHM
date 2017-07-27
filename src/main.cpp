@@ -58,6 +58,7 @@ public:
 	testFunctionQuatricPolynomial() : testFunction()
 		{
 		setTestFunctionParameters(-1.,1,2.,0.2);
+		//slotBounds bounds1(-1,1); basisVector.push_back(new taylorSlot(bounds1,6)); 
 		slotBounds bounds1(-1,-0.5); basisVector.push_back(new taylorSlot(bounds1,numberBasisFunctions)); 
 		slotBounds bounds2(-0.5,0); basisVector.push_back(new taylorSlot(bounds2,numberBasisFunctions));
 		slotBounds bounds3(0, 0.5); basisVector.push_back(new taylorSlot(bounds3,numberBasisFunctions));
@@ -120,7 +121,7 @@ int main(int argc, char **argv) {
 	long samplingSteps=1e4;
 	unsigned int splineOrder=4;
 	unsigned int minLevel=2;
-	testFunctionExp myTestFunction;	//select which function to use here
+	testFunctionQuatricPolynomial myTestFunction;	//select which function to use here
 	//---------------------------------------------------------------
 	
 	double variable, random;

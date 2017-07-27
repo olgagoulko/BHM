@@ -1,4 +1,5 @@
 000build/
+.directory
 build/
 oldcode/
 *~
