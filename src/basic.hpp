@@ -50,4 +50,14 @@ long unsigned int rdtsc();					//generates RNG seed by measuring the total pseud
 /// verbosity level
 enum verbosity_level_type { CONCISE=0, VERBOSE=1 };
 
+/// if n>0 && (n == 2^k), then return k, otherwise return -1.
+inline int ilog2(int n) {
+    // ref: https://en.wikipedia.org/wiki/Power_of_two#Fast_algorithm_to_check_if_a_positive_number_is_a_power_of_two
+    if ((n<=0) || ((n & (n-1)) != 0)) return -1;
+    int m=0;
+    while ((n>>=1)) m++;
+    return m;
+}
+
+
 #endif /* BASIC_HPP_cdce02947f3f4772ad67a5420fdedf42 */

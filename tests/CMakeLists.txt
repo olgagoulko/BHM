@@ -34,3 +34,4 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sample.param ${CMAKE_CURRENT_BINARY_D
 
 bhm_add_test(maintest basic_unittest.cpp)
 bhm_add_test(iniparser iniparser.cpp)
+bhm_add_test(utilities utilities.cpp)
