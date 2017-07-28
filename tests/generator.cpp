@@ -11,8 +11,9 @@ using namespace std;
 
 class testFunction {
 	
-protected:
+private:
 	
+	int numberOfFunction;
 	double minVar;
 	double maxVar;
 	double intervalSize;
@@ -20,71 +21,30 @@ protected:
 	
 public:
 	
-	testFunction() {minVar=1.; maxVar=2.8; intervalSize=2.; testFunctionMax=100;}
-	void setTestFunctionParameters(double theMin, double theMax, double theSize, double theFunMax) {minVar=theMin; maxVar=theMax; intervalSize=theSize; testFunctionMax=theFunMax;}
+	testFunction(int which)
+		{
+		numberOfFunction=which;
+		if(which==0) {minVar=1.; maxVar=2.8; intervalSize=2.; testFunctionMax=0.6168917686383567;}
+		else if(which==1) {minVar=-1.; maxVar=1.0; intervalSize=2.; testFunctionMax=0.2;}
+		else if(which==2) {minVar=1.; maxVar=2.8; intervalSize=2.; testFunctionMax=3.1;}
+		else if(which==3) {minVar=1.; maxVar=PI+0.6; intervalSize=PI; testFunctionMax=1.1/PI;}
+		else if(which==4) {minVar=-5; maxVar=5.; intervalSize=10.; testFunctionMax=0.5;}	//don't use rejection method for this one
+		}
 	
 	double getMinVar() const {return minVar;}
 	double getMaxVar() const {return maxVar;}
 	double getIntervalSize() const {return intervalSize;}
 	double getTestFunctionMax() const {return testFunctionMax;}
 	
-	virtual double theTestFunctionValue(double variable) const {return 1;}
-	
-};
-
-class testFunctionCubicPolynomial: public testFunction {
-	
-private:
-	
-public:
-	
-	testFunctionCubicPolynomial() : testFunction()
+	double theTestFunctionValue(double variable) const
 		{
-		setTestFunctionParameters(1., 2.8, 2., 0.6168917686383567);
+		double value=1;
+		if(numberOfFunction==0) {value=3*(1 - 3*variable/2. + 2*variable*variable - variable*variable*variable/2.)/10.;}
+		else if(numberOfFunction==1) {value=pow(variable,4)-0.8*variable*variable;}
+		else if(numberOfFunction==2) {value=exp(-3*variable)/(-1 + exp(6))*3*exp(9);}
+		else if(numberOfFunction==3) {value=(10+cos(variable*10.))/10./PI;}
+		return value;
 		}
-	double theTestFunctionValue(double variable) const {return 3*(1 - 3*variable/2. + 2*variable*variable - variable*variable*variable/2.)/10.;}
-	
-};
-
-class testFunctionQuatricPolynomial: public testFunction {
-	
-private:
-	
-public:
-	
-	testFunctionQuatricPolynomial() : testFunction()
-		{
-		setTestFunctionParameters(-1.,1,2.,0.2);
-		}
-	double theTestFunctionValue(double variable) const {return pow(variable,4)-0.8*variable*variable;}
-	
-};
-
-class testFunctionExp: public testFunction {
-	
-private:
-	
-public:
-	
-	testFunctionExp() : testFunction()
-		{
-		setTestFunctionParameters(1.,2.8,2.,3.1);
-		}
-	double theTestFunctionValue(double variable) const {return exp(-3*variable)/(-1 + exp(6))*3*exp(9);}
-	
-};
-
-class testFunctionCos: public testFunction {
-	
-private:
-	
-public:
-	
-	testFunctionCos() : testFunction()
-		{
-		setTestFunctionParameters(1.,PI+0.6,PI,1.1/PI);
-		}
-	double theTestFunctionValue(double variable) const {return (10+cos(variable*10.))/10./PI;}
 	
 };
 
@@ -108,7 +68,7 @@ int main(int argc, char **argv) {
         }
         iniparser::param par(argv[1]); // FIXME: can throw!
 
-	cout << "----------------- Example BHM code ----------------" << endl;
+	cout << "Generating example histogram" << endl;
 	
 	long unsigned int seed=par.get(":RANDOMSEED", 0);
 	if(seed==0) seed=time(NULL);
@@ -118,8 +78,9 @@ int main(int argc, char **argv) {
 	long samplingSteps=par.get(":SAMPLESIZE", 1e4);
 	if(samplingSteps<defaultMinNumberTimesSampled) {cerr << "Too few sampling steps" << endl; return 1;}
 	
-	
-	testFunctionExp myTestFunction;
+	int theFunctionChoice=par.get(":FUNCTION",0);
+	if(theFunctionChoice<0 || theFunctionChoice>4) {cout << "No such function, will instead use function 0 (cubic polynomial)" << endl; theFunctionChoice=0;}
+	testFunction myTestFunction(theFunctionChoice);
 	
 	double variable, random;
 	double minVar=myTestFunction.getMinVar();
@@ -127,7 +88,9 @@ int main(int argc, char **argv) {
 	double intervalSize=myTestFunction.getIntervalSize();
 	double testFunctionMax=myTestFunction.getTestFunctionMax();
 	
-	double slotWidth=(maxVar-minVar)/pow(2.,10);
+	unsigned int power=par.get(":POWERBINS",10);
+	unsigned int numberHistogramBins=pow(2,power);
+	double slotWidth=(maxVar-minVar)/double(numberHistogramBins);
 
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth);
 	histogramBasis binHistogram(histogramVector);
@@ -135,52 +98,34 @@ int main(int argc, char **argv) {
 	//rejection method to generate x with appropriate probabilities
 	for(int i=0; i<samplingSteps;i++)
 		{
-		bool accept=false;
-		while(accept==false)
+		if(theFunctionChoice!=4)
 			{
-			variable=gsl_rng_uniform(RNG)*intervalSize+minVar;
-			random=gsl_rng_uniform(RNG)*testFunctionMax;
-			if(random<abs(myTestFunction.theTestFunctionValue(variable))) accept=true;
+			bool accept=false;
+			while(accept==false)
+				{
+				variable=gsl_rng_uniform(RNG)*intervalSize+minVar;
+				random=gsl_rng_uniform(RNG)*testFunctionMax;
+				if(random<abs(myTestFunction.theTestFunctionValue(variable))) accept=true;
+				}
+			}
+		else
+			{
+			if(i%5==0) {variable = gsl_ran_gaussian (RNG, 0.2);}
+			else if(i%2==0) {variable = 2+ gsl_ran_gaussian (RNG, 1.0);}
+			else {variable = -2+ gsl_ran_gaussian (RNG, 1.0);}
 			}
 		
 		binHistogram.sampleUniform(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		}
 
-        
-	unsigned int minLevel=par.get(":MinLevel", 2);
-        if (minLevel<2) {
-            std::cerr << "Warning: MINLEVEL must be at least 2, resetting it to 2";
-            minLevel=2;
-        }
-
-	double threshold=par.get(":Threshold", 2.0);
-
-
-            std::cout << std::boolalpha
-                      << "Input parameters:\n"
-                      << "SplineOrder = " << splineOrder-1 << " # spline order\n"
-                      << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
-                      << "Threshold = " << threshold << " # minimal goodness-of-fit threshold\n"
-
-                      << std::endl;
-
-        
-
+	ofstream output("testhistogram.dat");
 	
-	ofstream output("histogram_testoutput.dat");
-	double printStep=0.01; pair<double,double> basisResult;
-	
-	//normalization for output
-	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
-	
-	for(int i=0; i<(maxVar-minVar)/printStep;i++) 
+	for(unsigned int i=0; i<numberHistogramBins;i++) 
 		{
-		variable=minVar+i*printStep;
-		output << variable << '\t' << scaledBinHistogram.sampledFunctionValueWeightedAverage(variable).first << '\t' << scaledBinHistogram.sampledFunctionValueWeightedAverage(variable).second << '\t' 
-
-		<< endl;
+		basisSlot* currentSlot = binHistogram.getSlot(i);
+		output << setprecision(12) << currentSlot->getBounds().getLowerBound() << '\t' << currentSlot -> getNumberTimesSampled() << '\t' << currentSlot->sampledIntegral() << '\t' << currentSlot->getVariance() << endl;
 		}
-	
+	output << maxVar << endl;
 
 	return 0;
 	

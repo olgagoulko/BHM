@@ -15,7 +15,7 @@ Extra Arguments=
 Install Directory=file:///usr/local
 
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -75,6 +75,17 @@ Type=Native Application
 Configured from ProjectItem=sampling,src,main
 Project Target=sampling,src,main
 Working Directory=file:///home/olga/Documents/sampling/build/src/
+isExecutable=false
+
+[Launch][Launch Configuration 4]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=maintest
+Type=Native Application
+
+[Launch][Launch Configuration 4][Data]
+Project Target=sampling,tests,maintest
+Working Directory=file:///home/olga/Documents/sampling/build/tests/
 isExecutable=false
 
 [Project]

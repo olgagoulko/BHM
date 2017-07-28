@@ -91,6 +91,7 @@ public:
 	bool enoughSampled() const {return enoughData;}
 	
 	double sampledIntegral() const;
+	double getVariance() const {return variance;}
 	double sampledIntegralVariance() const;
 	double sampledIntegralError() const;
 	double sampledFunctionValue(double variable) const;
