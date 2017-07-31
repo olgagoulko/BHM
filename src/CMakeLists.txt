@@ -20,6 +20,10 @@ add_library (samplinglibrary basic.cpp spline.cpp slot.cpp histogram.cpp histogr
 add_executable(main main.cpp)
 set_property(TARGET main PROPERTY OUTPUT_NAME "bhm")
 
-target_link_libraries(main samplinglibrary ${GSL_LIBRARIES} libiniparser)
+add_executable(generator generator.cpp)
 
-install(TARGETS main RUNTIME DESTINATION bin)
+target_link_libraries(main samplinglibrary ${GSL_LIBRARIES} libiniparser)
+target_link_libraries(generator samplinglibrary ${GSL_LIBRARIES} libiniparser)
+
+
+install(TARGETS main generator RUNTIME DESTINATION bin)
