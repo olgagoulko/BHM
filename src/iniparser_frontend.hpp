@@ -11,6 +11,21 @@
 #include <stdexcept>
 
 namespace iniparser {
+    /// An (indefinite) error from the iniparser
+    class Error : public std::runtime_error {
+      public:
+        Error(const std::string& msg) : std::runtime_error(msg) {}
+    };
+
+    class MissingFileError : public Error {
+      public:
+        std::string filename;
+        MissingFileError(const std::string& msg, const std::string& fname)
+            : Error(msg), filename(fname)
+        {}
+        ~MissingFileError() throw() {}
+    };
+
     class param {
       private:
         std::string inifile_;
@@ -20,7 +35,7 @@ namespace iniparser {
         explicit param(const std::string& inifile): inifile_(inifile), dict_(0)
         {
             dict_=iniparser_load(inifile_.c_str());
-            if (!dict_) throw std::runtime_error("Error loading file: " + inifile_);
+            if (!dict_) throw MissingFileError("Error loading file: " + inifile_, inifile_);
             // iniparser_dump(dict_, stderr);
         }
 

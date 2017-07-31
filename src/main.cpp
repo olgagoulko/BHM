@@ -117,14 +117,12 @@ static std::ostream& print_help(const char* argv0, std::ostream& strm) {
 
         return strm;
 }
-            
 
 
-int main(int argc, char **argv) {
-
+int Main(int argc, char **argv) {
         if (argc!=2) {
             print_help(argv[0], std::cerr);
-            return 1;
+            return BAD_ARGS;
         }
         iniparser::param par(argv[1]); // FIXME: can throw!
 
@@ -168,7 +166,7 @@ int main(int argc, char **argv) {
         int splinePolynomialOrder=par.get(":SplineOrder", 4);
         if (splinePolynomialOrder<0) {
             std::cerr << "Polynomial order cannot be less than 0" << std::endl;
-            return 1;
+            return BAD_ARGS;
         }
         unsigned int splineOrder=splinePolynomialOrder+1; // number of polynomial coefficients
         
@@ -192,14 +190,21 @@ int main(int argc, char **argv) {
         if (outfile_name.empty()) {
             std::cerr << "Output file name must be provided via 'OutputName' parameter"
                       << std::endl;
-            return 1;
+            return BAD_ARGS;
         }
 
         std::ofstream outfile(outfile_name.c_str());
         if (!outfile) {
             std::cerr << "Cannot open output file '" << outfile_name << "'"
                       << std::endl;
-            return 1;
+            return BAD_ARGS;
+        }
+
+        if (ilog2(binHistogram.getSize())<0) {
+            std::cerr << "Number of bins (" << binHistogram.getSize()
+                      << ") must be a power of 2"
+                      << std::endl;
+            return BAD_DATA;
         }
         
         if (verbose) {
@@ -217,11 +222,13 @@ int main(int argc, char **argv) {
         }
         
 	cout << endl << "BHM fit:" << endl;
-	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps, threshold, jumpSuppression, verbose);
+	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps,
+                                                     threshold, jumpSuppression,
+                                                     verbose, fail_if_zero);
 	cout << endl;
         if (!testBHMfit.getAcceptance()) {
             if (verbose) std::cout << "WARNING: no acceptable fit found" << std::endl;
-            if (fail_if_bad) return 2;
+            if (fail_if_bad) return BAD_FIT;
         }
         if (print_fit) {
             testBHMfit.printSplineArrayInfo(std::cout); cout << endl;
@@ -262,6 +269,29 @@ int main(int argc, char **argv) {
 	
 	cout << "---------------------------------- Testing finished -------------------------------------" << endl;
 #endif	
-	return 0;
+	return OK;
 	
+}
+
+int main(int argc, char** argv)
+{
+    try {
+        return Main(argc, argv);
+    } catch (const iniparser::Error& err) {
+        std::cerr << "Cannot read parameters: " << err.what() << std::endl;
+        return BAD_ARGS;
+    } catch (const histogramBasis::ConsistentWithZero_Error& err) {
+        std::cerr << err.what() << std::endl;
+        return ZERO_DATA;
+    } catch (const histogramBasis::NotEnoughData_Error& err) {
+        std::cerr << err.what() << std::endl;
+        return BAD_DATA;
+    } catch (const std::runtime_error& err) {
+        std::cerr << "Runtime error: " << err.what() << std::endl;
+        return OTHER_ERROR;
+    } catch (const std::logic_error& err) {
+        std::cerr << "Internal logic error: " << err.what() << std::endl;
+        return OTHER_ERROR;
+    }
+    // can never reach here
 }

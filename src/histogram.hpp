@@ -18,7 +18,19 @@ private:
 	std::vector<basisSlot*> basisSlots;
 	
 public:
-	
+
+        class ConsistentWithZero_Error : public std::runtime_error {
+          public:
+            ConsistentWithZero_Error() : std::runtime_error("Data consistent with zero")
+            {}
+        };
+
+        class NotEnoughData_Error : public std::runtime_error {
+          public:
+            NotEnoughData_Error() : std::runtime_error("Not enough data for analysis")
+            {}
+        };
+    
 	histogramBasis(std::vector<basisSlot*> theBasisSlots);
 	~histogramBasis();
 	histogramBasis& operator= (const histogramBasis& toBeAssigned);
@@ -44,7 +56,7 @@ public:
 	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
 	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm);
-    splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose);
+        splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose, bool fail_if_zero);
 	
 };
 

@@ -144,7 +144,7 @@ basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int en
 				{
 				cerr << "ERROR: trying to combine overlapping slots " << i << " and " << j << endl; 
 				basisSlots[i] -> printSlotInfo(cerr); basisSlots[j] -> printSlotInfo(cerr);
-				throw std::runtime_error("ERROR: trying to combine overlapping slots");
+				throw std::logic_error("ERROR: trying to combine overlapping slots");
 				}
 			}
 		}
@@ -384,23 +384,39 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose)
+splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose, bool fail_if_zero)
 	{
-	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
+	if(splineOrder<1) {
+            // rationale: it's caller's job to check parameters and issue warning to an appropriate log
+            // here we simply bail out if the input is wrong.
+            throw std::invalid_argument("BHMfit(): splineOrder must be at least 1");
+        }
 		
 	vector<double> aMaxVector; vector<double> chisqArray;
 	
 	if(minLevel<2) minLevel=2;
 	unsigned int currentLevel=minLevel;
-	unsigned int maxLevel=rounding(log(double(basisSlots.size()))/log(2));
-	if(pow(2,maxLevel)!=basisSlots.size()) {cout << "Number of elementary bins is not a power of 2" << endl; exit(EXIT_FAILURE);}
+
+        int maxLevel=ilog2(basisSlots.size());
+        if (maxLevel<0) {
+            // rationale: it's caller's responsibility to check this precondition
+            throw std::invalid_argument("Number of elementary bins is not a power of 2");
+        }
 	
 	//make bin hierarchy; position in outer vector denotes bin level: 0 is largest bin, 1 are second level bins etc
 	//intervals labeled in the same way: as a sequence 0 or 11 or 221 or 2331 etc
 	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm); //the bins on each given level don't have to be in order, only analysisBins do
 
-	if(analysisBins.size()<minLevel) {cout << "Not enough data for meaningful analysis" << endl; exit(EXIT_FAILURE);}
-	if(isDataConsistentWithZero(analysisBins)==true) cout << "Data is consistent with zero on the interval" << endl;
+	if(analysisBins.size()<minLevel) {
+            // rationale: hard to be checked by caller, but no meaningful spline can be created
+            throw NotEnoughData_Error();
+        }
+
+	if(isDataConsistentWithZero(analysisBins)==true) {
+            if (verbose) cout << "WARNING: Data is consistent with zero on the interval" << endl;
+            // rationale: we have to throw here because the return object is not going to be (meaningfully) constructed
+            if (fail_if_zero) throw ConsistentWithZero_Error();
+        }
 		
 	vector<slotBounds> intervalBounds;
 	vector<unsigned int> intervalOrders;
@@ -424,7 +440,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 		chisqArray.resize(0);
 		for(unsigned int i=0;i<currentNumberIntervals;i++)
 			{
-			if(checkIntervals) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
+			if(checkIntervals && verbose) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
 			double chisqArrayElement = 1+fitAcceptanceThreshold*sqrt(2.);
 			bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
 			chisqArray.push_back(chisqArrayElement);
@@ -461,20 +477,35 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 				}
 			}
 		
-		if(allSplinesGood) {cout << "Good spline found!" << endl; cout << endl; break;}
+		if(allSplinesGood)
+                    {
+                    if (verbose) cout << "Good spline found!" << endl << endl;
+                    break;
+                    }
 		currentLevel++;
 		cout << endl;
 		}
 	
-	if(!allSplinesGood) {jumpSuppression=0; cout << "No acceptable fit could be found with the current threshold " << fitAcceptanceThreshold << endl;}
-	if(intervalBounds.size()==1) {jumpSuppression=0; cout << "No knots for jump suppression" << endl;} //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
+	if(!allSplinesGood)
+                {
+                    jumpSuppression=0;
+                    if (verbose)
+                        cout << "No acceptable fit could be found with the current threshold "
+                             << fitAcceptanceThreshold
+                             << endl;
+                }
+	if(intervalBounds.size()==1)
+                {
+                    jumpSuppression=0; //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
+                    if (verbose) cout << "No knots for jump suppression" << endl;
+                } 
 	
 	/**/if(jumpSuppression>0)
 		{
+		if (verbose) cout << "\nIterative consistent constraints procedure\n" << endl;
 		aMaxVector.resize(0);
 		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
 		for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((geta3.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
-		cout << endl; cout << "Iterative consistent constraints procedure" << endl; cout << endl;
 		}
 	
 	splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
@@ -488,7 +519,12 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 				{
 				iterations++;
 				allSplinesGood = result.checkOverallAcceptance(fitAcceptanceThreshold);
-				cout << "Gluing factor " << jumpSuppression << "; the interval fit is "; if(!allSplinesGood) cout << "not "; cout << "good" << endl;
+				if (verbose)
+                                    cout << "Gluing factor "
+                                         << jumpSuppression
+                                         << "; the interval fit is "
+                                         << (allSplinesGood? "good" : "not good")
+                                         << endl;
 				
 				if(!allSplinesGood)
 					{

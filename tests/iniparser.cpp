@@ -15,11 +15,12 @@ static void test_ctor()
     bool ok=0;
     try {
         iniparser::param p("nosuchfile");
-    } catch (const std::runtime_error& err) {
+    } catch (const iniparser::MissingFileError& err) {
         ok=1;
         std::cout << "Caught exception: " << err.what() << std::endl;
+        sput_fail_unless(err.filename=="nosuchfile", "Filename that caused the error");
     }
-    sput_fail_unless(ok, "Exception not thrown");
+    sput_fail_unless(ok, "Exception thrown");
     iniparser::param p("sample.param");
     // int val=p.get<int>("DATAPOINTSMIN");
     // sput_fail_unless(val==100, "Parsing INI file");
