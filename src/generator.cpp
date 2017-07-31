@@ -60,15 +60,34 @@ static std::ostream& print_help(const char* argv0, std::ostream& strm) {
             
 
 
-int main(int argc, char **argv) {
+int Main(int argc, char **argv) {
 
         if (argc!=2) {
             print_help(argv[0], std::cerr);
-            return 1;
+            return BAD_ARGS;
         }
-        iniparser::param par(argv[1]); // FIXME: can throw!
+        iniparser::param par;
+        if (argv[1][0]!='\0') {
+            par.load(argv[1]); // can throw
+        }
 
-	cout << "Generating example histogram" << endl;
+        std::string out_hist_name=par.get(":OUTPUT","");
+	std::ofstream output_file_stream;
+        bool default_verbose=false;
+        if (!out_hist_name.empty()) {
+            output_file_stream.open(out_hist_name.c_str());
+            if (!output_file_stream) {
+                std::cerr << "Cannot open file '" << out_hist_name << "'" << std::endl;
+                return BAD_ARGS;
+            }
+            default_verbose=true; // verbose by default only if output to a file
+        }
+        std::ostream& output=*(out_hist_name.empty()? &std::cout : &output_file_stream);
+        bool verbose=par.get(":VERBOSE",default_verbose);
+        
+	if (verbose) {
+            cout << "Generating example histogram" << endl;
+        }
 	
 	long unsigned int seed=par.get(":RANDOMSEED", 0);
 	if(seed==0) seed=time(NULL);
@@ -76,10 +95,10 @@ int main(int argc, char **argv) {
 	gsl_rng_set (RNG, seed);
 	
 	long samplingSteps=par.get(":SAMPLESIZE", 1e4);
-	if(samplingSteps<defaultMinNumberTimesSampled) {cerr << "Too few sampling steps" << endl; return 1;}
-	
+	if(samplingSteps<defaultMinNumberTimesSampled) {cerr << "Too few sampling steps" << endl; return BAD_ARGS;}
+
 	int theFunctionChoice=par.get(":FUNCTION",0);
-	if(theFunctionChoice<0 || theFunctionChoice>4) {cout << "No such function, will instead use function 0 (cubic polynomial)" << endl; theFunctionChoice=0;}
+	if(theFunctionChoice<0 || theFunctionChoice>4) {cerr << "WARNING: No such function, will instead use function 0 (cubic polynomial)" << endl; theFunctionChoice=0;}
 	testFunction myTestFunction(theFunctionChoice);
 	
 	double variable, random;
@@ -89,7 +108,7 @@ int main(int argc, char **argv) {
 	double testFunctionMax=myTestFunction.getTestFunctionMax();
 	
 	unsigned int power=par.get(":POWERBINS",10);
-	unsigned int numberHistogramBins=pow(2,power);
+	unsigned int numberHistogramBins=(1<<power);
 	double slotWidth=(maxVar-minVar)/double(numberHistogramBins);
 
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth);
@@ -118,8 +137,7 @@ int main(int argc, char **argv) {
 		binHistogram.sampleUniform(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		}
 
-	ofstream output("testhistogram.dat");
-	
+
 	for(unsigned int i=0; i<numberHistogramBins;i++) 
 		{
 		basisSlot* currentSlot = binHistogram.getSlot(i);
@@ -127,6 +145,19 @@ int main(int argc, char **argv) {
 		}
 	output << maxVar << endl;
 
-	return 0;
+	return OK;
 	
+}
+
+int main(int argc, char** argv)
+{
+    try {
+        return Main(argc, argv);
+    } catch (const iniparser::Error& e) {
+        std::cerr << "Error parsing input file: " << e.what() << std::endl;
+        return BAD_ARGS;
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Runtime error: " << e.what() << std::endl;
+        return OTHER_ERROR;
+    }
 }
