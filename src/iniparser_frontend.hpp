@@ -9,6 +9,7 @@
 #include <iniparser.h>
 #include <string>
 #include <stdexcept>
+#include <algorithm> // for swap()
 
 namespace iniparser {
     /// An (indefinite) error from the iniparser
@@ -30,7 +31,18 @@ namespace iniparser {
       private:
         std::string inifile_;
         dictionary* dict_;
+
+        /// Assignment is not allowed
+        param& operator=(const param&) { throw std::logic_error("Assignment of parameter objects is not allowed"); }
+        
+        /// Copy-constructing is not allowed
+        param(const param&): dict_(0) { throw std::logic_error("Copy-constructing parameter objects is not allowed"); }
+        
       public:
+        /// Default constructor: no files loaded/parsed
+        explicit param(): inifile_(), dict_(0)
+        { }
+        
         /// Load and parse a parameter file
         explicit param(const std::string& inifile): inifile_(inifile), dict_(0)
         {
@@ -41,31 +53,48 @@ namespace iniparser {
 
         ~param()
         {
-            iniparser_freedict(dict_);
+            if (dict_) iniparser_freedict(dict_);
+        }
+
+        void swap(param& other)
+        {
+            using std::swap;
+            swap(inifile_, other.inifile_);
+            swap(dict_, other.dict_);
+        }
+        
+        void load(const std::string& inifile) {
+            param other(inifile);
+            swap(other);
         }
         
         int get(const std::string& key, int deflt)
         {
+            if (!dict_) return deflt;
             return iniparser_getint(dict_, key.c_str(), deflt);
         }
 
         double get(const std::string& key, double deflt)
         {
+            if (!dict_) return deflt;
             return iniparser_getdouble(dict_, key.c_str(), deflt);
         }
 
         bool get(const std::string& key, bool deflt)
         {
+            if (!dict_) return deflt;
             return iniparser_getboolean(dict_, key.c_str(), deflt);
         }
 
         std::string get(const std::string& key, const std::string& deflt)
         {
+            if (!dict_) return deflt;
             return iniparser_getstring(dict_, key.c_str(), deflt.c_str());
         }
 
         std::string get(const std::string& key, const char* deflt)
         {
+            if (!dict_) return deflt;
             return iniparser_getstring(dict_, key.c_str(), deflt);
         }
 

@@ -22,8 +22,36 @@ static void test_ctor()
     }
     sput_fail_unless(ok, "Exception thrown");
     iniparser::param p("sample.param");
-    // int val=p.get<int>("DATAPOINTSMIN");
-    // sput_fail_unless(val==100, "Parsing INI file");
+}
+
+static void test_default_ctor()
+{
+    iniparser::param p;
+    sput_fail_unless(p.get("int",1234)==1234, "Default constructor, int val");
+    sput_fail_unless(p.get("dbl",12.5)==12.5, "Default constructor, double val");
+    sput_fail_unless(p.get("bol",true)==true, "Default constructor, bool val");
+    sput_fail_unless(p.get("str1","hi")=="hi", "Default constructor, char* val");
+    sput_fail_unless(p.get("str2",std::string("hello"))=="hello", "Default constructor, string val");
+}
+
+static void test_load()
+{
+    iniparser::param p;
+    bool ok=0;
+    try {
+        p.load("nosuchfile");
+    } catch (const iniparser::MissingFileError& err) {
+        ok=1;
+        std::cout << "Caught exception: " << err.what() << std::endl;
+        sput_fail_unless(err.filename=="nosuchfile", "Filename that caused the error");
+    }
+    sput_fail_unless(ok, "Exception thrown");
+    sput_fail_unless(p.get(":datapointsmin", 123)==123, "Failed load");
+
+    p.load("sample.param");
+    int val=p.get(":datapointsmin", 123);
+    std::cout << "value=" << val << std::endl;
+    sput_fail_unless(val==100, "Load");
 }
 
 static void test_get_int_data()
@@ -121,6 +149,8 @@ int main(int argc, char **argv)
     sput_enter_suite("test_iniparser");
 
     sput_run_test(test_ctor);
+    sput_run_test(test_default_ctor);
+    sput_run_test(test_load);
 
     sput_run_test(test_get_int_data);
     sput_run_test(test_get_double_data);
