@@ -87,17 +87,10 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
-	double threshold=2;
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-	bool acceptance=testBHMfit.getAcceptance();
-	while(acceptance==false)
-		{
-		threshold+=1;
-		testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-		acceptance=testBHMfit.getAcceptance();
-		if(threshold>5) break;
-		}
-	testBHMfit.printSplines();
+	fitAcceptanceThreshold threshold;
+	threshold.min=2.0; threshold.max=5.0; threshold.steps=3;
+	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+	testBHMfit.printSplines(cout);
 	
 	vector<slotBounds> intervalBounds=testBHMfit.getBounds();
 	for(int round=0;round<bootstrapSamples;round++)

@@ -109,25 +109,16 @@ int main(int argc, char **argv) {
 			}
 		histogramBasis scaledBasisHistogram = combinedBasisHistogram.scaledHistogram(samplingSteps);
 		
-		double threshold=2;
+		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=6; threshold.steps=4;
 		bool acceptance;
 		vector< double > dummy;
 		splineArray theBHMfit;
 		
 		if(round==bootstrapSamples)
 			{
-			theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
+			theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
 			acceptance=theBHMfit.getAcceptance();
 			//if(theBHMfit.numberKnots()>10) acceptance=false;
-
-			while(acceptance==false)
-				{
-				threshold+=1;
-				theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-				acceptance=theBHMfit.getAcceptance();
-				//if(theBHMfit.numberKnots()>10) acceptance=false;
-				if(threshold>5) break;
-				}
 			
 			intervalBounds=theBHMfit.getBounds();
 			
@@ -178,7 +169,7 @@ int main(int argc, char **argv) {
 			}
 		output << endl; output << endl;
 		
-		cout << "fit info: " << theBHMfit.getAcceptance() << '\t' << threshold << '\t' << theBHMfit.numberKnots() << endl;
+		cout << "fit info: " << theBHMfit.getAcceptance() << '\t' << theBHMfit.getThreshold() << '\t' << theBHMfit.numberKnots() << endl;
 		}
 	
 	vector<splinePiece*> theBootstrapSplines;
@@ -198,7 +189,7 @@ int main(int argc, char **argv) {
 
 	splineArray averageBootstrapSpline(theBootstrapSplines);
 	cout << "Average Bootstrap Spline" << endl;
-	averageBootstrapSpline.printSplineArrayInfo(); averageBootstrapSpline.printSplines(); cout << endl;
+	averageBootstrapSpline.printSplineArrayInfo(cout); averageBootstrapSpline.printSplines(cout); cout << endl;
 		
 	for(int i=0; i<numSteps;i++) 
 		{

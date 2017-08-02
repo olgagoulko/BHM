@@ -25,7 +25,7 @@ public:
 	unsigned int getSplineOrder() const {return splineOrder;}
 	slotBounds getBounds() const {return bounds;}
 	
-	bool checkIntervalAcceptance(std::vector< std::vector< basisSlot* > > currentAnalysisBins, double fitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const;
+	bool checkIntervalAcceptance(std::vector< std::vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const;
 	
 	double splineValue(double variable) const;
 	double splineError(double variable) const;
@@ -48,6 +48,7 @@ private:
 	std::vector<double> intervalBoundaries;
 	std::vector<double> levelsChiSquared;
 	std::vector<int> levelsDegreesOfFreedom;
+	double currentThreshold;
 	bool acceptableSpline;
 	
 public:
@@ -59,11 +60,12 @@ public:
 	splineArray (const splineArray& toBeCopied);
 	
 	void updateLevelProperties(std::vector<double> theChisq, std::vector<int> theDOF);
-	void updateGoodness(bool acceptable);
+	void updateGoodness(bool acceptable, double threshold);
 	
 	splinePiece * getSplinePiece(unsigned int whichPiece) const;
 	bool getAcceptance() const {return acceptableSpline;}
-	bool checkOverallAcceptance(double fitAcceptanceThreshold) const;
+	double getThreshold() const {return currentThreshold;}
+	bool checkOverallAcceptance(double currentFitAcceptanceThreshold) const;
 	std::vector<slotBounds> getBounds() const;
 	int numberKnots() const {return intervalBoundaries.size();}
 	

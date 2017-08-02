@@ -74,19 +74,11 @@ int main(int argc, char **argv) {
 			
 		histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingStepsCounter);
 			
-		double threshold=2;
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 0);
+		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=5.5; threshold.steps=7;
+		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 0, true, false);
 		bool acceptance=testBHMfit.getAcceptance();
 			
-		while(acceptance==false)
-			{
-			threshold+=0.5;
-			testBHMfit = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 0);
-			acceptance=testBHMfit.getAcceptance();
-			if(threshold>5) break;
-			}
-			
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 1);
+		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 1, true, false);
 			
 		if( acceptance ) numberOfGoodFits++;
 			
@@ -101,7 +93,7 @@ int main(int argc, char **argv) {
 			}
 		output << endl; output << endl;
 			
-		cout << "fit info: " << testBHMfit.getAcceptance() << '\t' << threshold << '\t' << testBHMfit.numberKnots() << endl;
+		cout << "fit info: " << testBHMfit.getAcceptance() << '\t' << testBHMfit.getThreshold() << '\t' << testBHMfit.numberKnots() << endl;
 		}
 
 	cout << "number of good fits: " << numberOfGoodFits << endl;

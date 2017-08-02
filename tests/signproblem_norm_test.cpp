@@ -100,9 +100,10 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
-	splineArray testBHMfit = binHistogram.normalizedHistogram(normSlot.sampledIntegral()).BHMfit(4, 2, samplingSteps, 2, 0);
-	testBHMfit.printSplineArrayInfo(); cout << endl;
-	testBHMfit.printSplines();
+	fitAcceptanceThreshold threshold; threshold.min=2;
+	splineArray testBHMfit = binHistogram.normalizedHistogram(normSlot.sampledIntegral()).BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+	testBHMfit.printSplineArrayInfo(cout); cout << endl;
+	testBHMfit.printSplines(cout);
 	
 	/**/intervalBounds=testBHMfit.getBounds();
 	for(int round=0;round<bootstrapSamples;round++)
@@ -163,7 +164,7 @@ int main(int argc, char **argv) {
 		
 	splineArray averageBootstrapSpline(theBootstrapSplines);
 	cout << "Average Bootstrap Spline" << endl;
-	averageBootstrapSpline.printSplineArrayInfo(); averageBootstrapSpline.printSplines(); cout << endl;
+	averageBootstrapSpline.printSplineArrayInfo(cout); averageBootstrapSpline.printSplines(cout); cout << endl;
 	/**/
 	
 	ofstream output("histogram_testoutput.dat");

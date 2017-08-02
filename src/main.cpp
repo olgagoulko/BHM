@@ -176,7 +176,12 @@ int Main(int argc, char **argv) {
             minLevel=2;
         }
 
-	double threshold=par.get(":Threshold", 2.0);
+        fitAcceptanceThreshold threshold;
+	threshold.min=par.get(":THRESHOLD", 2.0);
+	threshold.max=par.get(":THRESHOLDMAX", 2.0);	//if max<=min, use only min threshold value, steps set to zero
+	threshold.steps=par.get(":THRESHOLDSTEPS", 0);	//if steps==0 only use min threshold value, ignore max
+	if(threshold.max<=threshold.min) threshold.steps=0;
+	if(threshold.steps<0) threshold.steps=0;
 
         bool enableJumpSuppression=par.get(":JumpSuppression", false);
         double jumpSuppression=enableJumpSuppression? 0 : 1.0;
@@ -212,7 +217,9 @@ int Main(int argc, char **argv) {
                       << "Input parameters:\n"
                       << "SplineOrder = " << splineOrder-1 << " # spline order\n"
                       << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
-                      << "Threshold = " << threshold << " # minimal goodness-of-fit threshold\n"
+                      << "Threshold = " << threshold.min << " # minimal goodness-of-fit threshold\n"
+		      << "Threshold maximum = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
+		      << "Threshold steps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
                       << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
                       << "Verbose = " << verbose << "# verbose output\n"
                       << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"

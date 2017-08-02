@@ -50,13 +50,14 @@ int main(int argc, char **argv) {
 	
 	ofstream output("histogram_testoutput.dat");
 			
-	double threshold=0;
+	fitAcceptanceThreshold threshold;
+	threshold.min=0; threshold.max=0; threshold.steps=0;
 	for(int round=0;round<30;round++)
 		{
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-		cout << "BHM fit: " << testBHMfit.getAcceptance() << '\t' << threshold << '\t' << testBHMfit.numberKnots() << endl;
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1);
-		cout << "Jump suppression: " << testJumpSuppression.getAcceptance() << '\t' << threshold << '\t' << testJumpSuppression.numberKnots() << endl;
+		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+		cout << "BHM fit: " << testBHMfit.getAcceptance() << '\t' << threshold.min << '\t' << testBHMfit.numberKnots() << endl;
+		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1, true, false);
+		cout << "Jump suppression: " << testJumpSuppression.getAcceptance() << '\t' << threshold.min << '\t' << testJumpSuppression.numberKnots() << endl;
 		
 		for(int i=0; i<numSteps;i++) 
 			{
@@ -67,7 +68,7 @@ int main(int argc, char **argv) {
 			}
 		output << endl; output << endl;
 				
-		threshold+=0.5;
+		threshold.min+=0.5;
 		}
 		
 	

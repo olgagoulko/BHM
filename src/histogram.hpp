@@ -5,6 +5,13 @@
 #include "slot.hpp" 
 #include "spline.hpp"
 
+struct fitAcceptanceThreshold {
+	fitAcceptanceThreshold() : max(0), steps(0) {}
+	double min;
+	double max;
+	int steps;
+} ;
+
 std::vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotWidth, int numberOverlaps = 1, int totalNumOfBasisFn = 0);
 
 class histogramBasis {
@@ -56,7 +63,7 @@ public:
 	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
 	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm);
-        splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose, bool fail_if_zero);
+        splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool verbose, bool fail_if_zero);
 	
 };
 

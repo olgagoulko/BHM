@@ -20,7 +20,7 @@ void splinePiece::setSplinePiece(vector< double > theCoefficients, vector< doubl
 	}
 
 
-bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > currentAnalysisBins, double fitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const
+bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const
 	{
 	bool currentSplineGood=true;
 	if(intervalOrder>currentAnalysisBins.size())
@@ -46,10 +46,10 @@ bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > current
 		if(numberSlotsAtCurrentLevel>pow(2,j)/2.)
 			{
 			currentChisq*=1./double(numberSlotsAtCurrentLevel);
-			double delta=1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
+			double delta=1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
 			if(delta<chisqArrayElement) chisqArrayElement=delta;
-			if(checkIntervals) cout << intervalOrder+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)) << endl;
-			if(currentChisq>1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; break;}
+			if(checkIntervals) cout << intervalOrder+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)) << endl;
+			if(currentChisq>1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; break;}
 			}
 		else 
 			{
@@ -137,6 +137,7 @@ splineArray::splineArray()
 	intervalBoundaries.resize(0);
 	levelsChiSquared.resize(0);
 	levelsDegreesOfFreedom.resize(0);
+	currentThreshold=0;
 	acceptableSpline=false;
 	}
 
@@ -148,6 +149,7 @@ splineArray::splineArray(vector< splinePiece* > theSplines)
 	intervalBoundaries.resize(0);
 	levelsChiSquared.resize(0);
 	levelsDegreesOfFreedom.resize(0);
+	currentThreshold=0;
 	acceptableSpline=false;
 	splines.resize(0);
 	splines.push_back(theSplines[0]);
@@ -180,6 +182,7 @@ splineArray& splineArray::operator=(const splineArray& toBeAssigned)
 		upperBound=(splines[splines.size()-1] -> getBounds()).getUpperBound();
 		splineOrder=(splines[0] -> getSplineOrder());
 		updateLevelProperties(toBeAssigned.levelsChiSquared, toBeAssigned.levelsDegreesOfFreedom);
+		currentThreshold=toBeAssigned.currentThreshold;
 		acceptableSpline=toBeAssigned.acceptableSpline;
 		intervalBoundaries=toBeAssigned.intervalBoundaries;
 		}
@@ -198,6 +201,7 @@ splineArray::splineArray(const splineArray& toBeCopied)
 	upperBound=(splines[splines.size()-1] -> getBounds()).getUpperBound();
 	splineOrder=(splines[0] -> getSplineOrder());
 	updateLevelProperties(toBeCopied.levelsChiSquared, toBeCopied.levelsDegreesOfFreedom);
+	currentThreshold=toBeCopied.currentThreshold;
 	acceptableSpline=toBeCopied.acceptableSpline;
 	intervalBoundaries=toBeCopied.intervalBoundaries;
 	}
@@ -214,9 +218,10 @@ void splineArray::updateLevelProperties(std::vector<double> theChisq, std::vecto
 		}
 	}
 
-void splineArray::updateGoodness(bool acceptable)
+void splineArray::updateGoodness(bool acceptable, double threshold)
 	{
 	acceptableSpline=acceptable;
+	currentThreshold=threshold;
 	}
 
 
@@ -227,11 +232,11 @@ splinePiece* splineArray::getSplinePiece(unsigned int whichPiece) const
 	}
 
 
-bool splineArray::checkOverallAcceptance(double fitAcceptanceThreshold) const
+bool splineArray::checkOverallAcceptance(double currentFitAcceptanceThreshold) const
 	{
 	bool overallAcceptance=true;
 	for(unsigned int i=0;i<levelsChiSquared.size();i++)
-		if( (levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))>fitAcceptanceThreshold ) overallAcceptance=false;
+		if( (levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))>currentFitAcceptanceThreshold ) overallAcceptance=false;
 	return overallAcceptance;
 	}
 

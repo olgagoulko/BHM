@@ -384,7 +384,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression, bool verbose, bool fail_if_zero)
+splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool verbose, bool fail_if_zero)
 	{
 	if(splineOrder<1) {
             // rationale: it's caller's job to check parameters and issue warning to an appropriate log
@@ -395,8 +395,6 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	vector<double> aMaxVector; vector<double> chisqArray;
 	
 	if(minLevel<2) minLevel=2;
-	unsigned int currentLevel=minLevel;
-
         int maxLevel=ilog2(basisSlots.size());
         if (maxLevel<0) {
             // rationale: it's caller's responsibility to check this precondition
@@ -417,73 +415,87 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
             // rationale: we have to throw here because the return object is not going to be (meaningfully) constructed
             if (fail_if_zero) throw ConsistentWithZero_Error();
         }
-		
+	
+	bool allSplinesGood; bool checkIntervals;
 	vector<slotBounds> intervalBounds;
 	vector<unsigned int> intervalOrders;
-	vector<unsigned int> intervalNumbers;
-	slotBounds histogramBounds(lowerBound,upperBound);
-	intervalBounds.push_back(histogramBounds);
-	unsigned int currentNumberIntervals;
-	intervalOrders.push_back(0); intervalNumbers.push_back(0);
-
-	bool allSplinesGood; bool checkIntervals;
-	while(currentLevel<analysisBins.size()-1)
+	double thresholdIncrease=0;
+	if(theThreshold.max<=theThreshold.min) theThreshold.steps=0;
+	if(theThreshold.steps>0) thresholdIncrease=(theThreshold.max-theThreshold.min)/double(theThreshold.steps);
+	double currentFitAcceptanceThreshold;
+	for(int thresholdStep=0; thresholdStep<=theThreshold.steps; thresholdStep++)
 		{
-		splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+		currentFitAcceptanceThreshold=theThreshold.min+thresholdStep*thresholdIncrease;
+		if(verbose) cout << "Begin BHM fitting with threshold T = " << currentFitAcceptanceThreshold << endl;
+		
+		intervalBounds.resize(0);
+		intervalOrders.resize(0);
+		vector<unsigned int> intervalNumbers;
+		slotBounds histogramBounds(lowerBound,upperBound);
+		intervalBounds.push_back(histogramBounds);
+		unsigned int currentNumberIntervals;
+		intervalOrders.push_back(0); intervalNumbers.push_back(0);
+		unsigned int currentLevel=minLevel;
 
-		if(result.checkOverallAcceptance(fitAcceptanceThreshold)!=true) checkIntervals=true;
-		else checkIntervals=false;
-		
-		currentNumberIntervals=intervalBounds.size();
-		bool isIntervalGood[currentNumberIntervals];
-		allSplinesGood=true;
-		chisqArray.resize(0);
-		for(unsigned int i=0;i<currentNumberIntervals;i++)
+		while(currentLevel<analysisBins.size()-1)
 			{
-			if(checkIntervals && verbose) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
-			double chisqArrayElement = 1+fitAcceptanceThreshold*sqrt(2.);
-			bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
-			chisqArray.push_back(chisqArrayElement);
-		
-			if(checkIntervals)
-				{
-				if(currentSplineGood==false) allSplinesGood=false;
-				isIntervalGood[i]=currentSplineGood;
-				}
-			}
-				
-		if(checkIntervals)
-			{
-			unsigned int intervalCounter=0;
+			splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+
+			if(result.checkOverallAcceptance(currentFitAcceptanceThreshold)!=true) checkIntervals=true;
+			else checkIntervals=false;
+			
+			currentNumberIntervals=intervalBounds.size();
+			bool isIntervalGood[currentNumberIntervals];
+			allSplinesGood=true;
+			chisqArray.resize(0);
 			for(unsigned int i=0;i<currentNumberIntervals;i++)
 				{
-				if(!isIntervalGood[i])
+				if(checkIntervals && verbose) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
+				double chisqArrayElement = 1+currentFitAcceptanceThreshold*sqrt(2.);
+				bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
+				chisqArray.push_back(chisqArrayElement);
+			
+				if(checkIntervals)
 					{
-					intervalOrders[intervalCounter]++;
-					intervalOrders.insert(intervalOrders.begin()+intervalCounter+1,intervalOrders[intervalCounter]);
-					intervalNumbers[intervalCounter]*=2;
-					intervalNumbers.insert(intervalNumbers.begin()+intervalCounter+1,intervalNumbers[intervalCounter]+1);
+					if(currentSplineGood==false) allSplinesGood=false;
+					isIntervalGood[i]=currentSplineGood;
+					}
+				}
+					
+			if(checkIntervals)
+				{
+				unsigned int intervalCounter=0;
+				for(unsigned int i=0;i<currentNumberIntervals;i++)
+					{
+					if(!isIntervalGood[i])
+						{
+						intervalOrders[intervalCounter]++;
+						intervalOrders.insert(intervalOrders.begin()+intervalCounter+1,intervalOrders[intervalCounter]);
+						intervalNumbers[intervalCounter]*=2;
+						intervalNumbers.insert(intervalNumbers.begin()+intervalCounter+1,intervalNumbers[intervalCounter]+1);
+						intervalCounter++;
+						}
 					intervalCounter++;
 					}
-				intervalCounter++;
+				
+				intervalBounds.resize(0);
+				for(unsigned int i=0;i<intervalOrders.size();i++)
+					{
+					slotBounds currentBounds( (basisSlots[pow(2,maxLevel-intervalOrders[i])*intervalNumbers[i]] -> getBounds()).getLowerBound(), (basisSlots[pow(2,maxLevel-intervalOrders[i])*(intervalNumbers[i]+1)-1] -> getBounds()).getUpperBound());
+				
+					intervalBounds.push_back(currentBounds);
+					}
 				}
 			
-			intervalBounds.resize(0);
-			for(unsigned int i=0;i<intervalOrders.size();i++)
+			if(allSplinesGood)
 				{
-				slotBounds currentBounds( (basisSlots[pow(2,maxLevel-intervalOrders[i])*intervalNumbers[i]] -> getBounds()).getLowerBound(), (basisSlots[pow(2,maxLevel-intervalOrders[i])*(intervalNumbers[i]+1)-1] -> getBounds()).getUpperBound());
-			
-				intervalBounds.push_back(currentBounds);
+				if (verbose) cout << "Good spline found with threshold T = " << currentFitAcceptanceThreshold << endl << endl;
+				break;
 				}
+			currentLevel++;
+			cout << endl;
 			}
-		
-		if(allSplinesGood)
-                    {
-                    if (verbose) cout << "Good spline found!" << endl << endl;
-                    break;
-                    }
-		currentLevel++;
-		cout << endl;
+		if(allSplinesGood) break;
 		}
 	
 	if(!allSplinesGood)
@@ -491,10 +503,10 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
                     jumpSuppression=0;
                     if (verbose)
                         cout << "No acceptable fit could be found with the current threshold "
-                             << fitAcceptanceThreshold
+                             << currentFitAcceptanceThreshold
                              << endl;
                 }
-	if(intervalBounds.size()==1)
+	else if(intervalBounds.size()==1)
                 {
                     jumpSuppression=0; //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
                     if (verbose) cout << "No knots for jump suppression" << endl;
@@ -518,9 +530,9 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 			while(CCprocedureConverged==false)
 				{
 				iterations++;
-				allSplinesGood = result.checkOverallAcceptance(fitAcceptanceThreshold);
+				allSplinesGood = result.checkOverallAcceptance(currentFitAcceptanceThreshold);
 				if (verbose)
-                                    cout << "Gluing factor "
+                                    cout << "Global suppression factor "
                                          << jumpSuppression
                                          << "; the interval fit is "
                                          << (allSplinesGood? "good" : "not good")
@@ -548,8 +560,8 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 			for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((result.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
 			for(unsigned int i=0;i<intervalBounds.size();i++)
 				{
-				double chisqArrayElement=1+fitAcceptanceThreshold*sqrt(2.);
-				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
+				double chisqArrayElement=1+currentFitAcceptanceThreshold*sqrt(2.);
+				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
 				chisqArray.push_back(chisqArrayElement);
 				}/**/
 			jumpSuppression=1;
@@ -562,7 +574,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	for (i = analysisBins.begin(); i != analysisBins.end(); i++) for (j = i->begin(); j != i->end(); j++) delete *j;
 	analysisBins.clear();
 
-	result.updateGoodness(allSplinesGood);
+	result.updateGoodness(allSplinesGood, currentFitAcceptanceThreshold);
 	return result;
 	}
 

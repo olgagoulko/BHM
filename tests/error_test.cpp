@@ -9,8 +9,8 @@ double testFunction(double variable)
 	{
 	//return 3*(1 - 3*variable/2. + 2*variable*variable - variable*variable*variable/2.)/10.;		//max 0.6168917686383567
 	//return (2+variable)/8.;
-	return (10+cos(variable*10.))/10./PI;			//max 1.1/PI, maxVar=PI+0.6
-	//return exp(-3*variable)/(-1 + exp(6))*3*exp(9);	//max 3.1
+	//return (10+cos(variable*10.))/10./PI;			//max 1.1/PI, maxVar=PI+0.6
+	return exp(-3*variable)/(-1 + exp(6))*3*exp(9);	//max 3.1
 	//return pow(variable,4)-0.8*variable*variable; 	//max 0.2
 	}
 
@@ -25,16 +25,16 @@ int main(int argc, char **argv) {
 	long samplingSteps=1e6;
 	
 	double variable, random;
-	double testFunctionMax=1.1/PI;
-	double intervalSize=PI;
-	double minVar=1.; double maxVar=PI+0.6;
+	double testFunctionMax=3.1;
+	double intervalSize=2;
+	double minVar=1.; double maxVar=2.8;
 	double slotWidth=(maxVar-minVar)/pow(2.,10); int numberOverlaps=1; int totalNumOfBasisFn=0;
 	pair<double,double> basisResult;
 	double currentVar;
 	
 	//double outputPoints[]={-1,-0.95,-0.5,-0.25,0,0.25,0.5,0.75,0.95,0.999};
-	//double outputPoints[]={1,1.1,1.2,1.45,1.5,1.9,2.0,2.5,2.7,2.799};
-	double outputPoints[]={1,1.2,1.5,2.0,2.5,2.7,2.9,3.2,3.5,3.74};
+	double outputPoints[]={1,1.1,1.2,1.45,1.5,1.9,2.0,2.5,2.7,2.799};
+	//double outputPoints[]={1,1.2,1.5,2.0,2.5,2.7,2.9,3.2,3.5,3.74};
 	
 	ofstream output("histogram_testoutput.dat");
 	
@@ -74,21 +74,13 @@ int main(int argc, char **argv) {
 		
 		histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 		
-		double threshold=2;
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
+		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=5.5; threshold.steps=7;
+		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
 		bool acceptance=testBHMfit.getAcceptance();
 		
-		while(acceptance==false)
-			{
-			threshold+=0.5;
-			testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-			acceptance=testBHMfit.getAcceptance();
-			if(threshold>5) break;
-			}
-			
 		cout << "round = " << round << ", acceptance = " << acceptance << ", number knots = " << testBHMfit.numberKnots() << endl;
 
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1);
+		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1, true, false);
 		
 		int numberSteps=10000; double stepWidth=(maxVar-minVar)/double(numberSteps);
 		double differenceIntegral=0; double differenceCurvatureIntegral=0; double differenceBasisIntegral=0;
@@ -124,7 +116,7 @@ int main(int argc, char **argv) {
 			}
 		output << differenceIntegral*stepWidth << '\t' << differenceCurvatureIntegral*stepWidth << '\t' << differenceBasisIntegral*stepWidth << '\t';
 		for(int i=0; i<6;i++) output << coverage[i]/double(numberSteps) << '\t';
-		output << testBHMfit.getAcceptance() << '\t' << testJumpSuppression.getAcceptance() << '\t' << threshold << '\t' << testBHMfit.numberKnots() << endl;
+		output << testBHMfit.getAcceptance() << '\t' << testJumpSuppression.getAcceptance() << '\t' << testBHMfit.getThreshold() << '\t' << testBHMfit.numberKnots() << endl;
 		
 		}
 	

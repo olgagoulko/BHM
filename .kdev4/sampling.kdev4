@@ -84,6 +84,7 @@ Name=maintest
 Type=Native Application
 
 [Launch][Launch Configuration 4][Data]
+Configured from ProjectItem=sampling,tests,maintest
 Project Target=sampling,tests,maintest
 Working Directory=file:///home/olga/Documents/sampling/build/tests/
 isExecutable=false
