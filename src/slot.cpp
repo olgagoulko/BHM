@@ -91,16 +91,17 @@ std::ostream& slotBounds::printBoundsInfo(std::ostream& strm, verbosity_level_ty
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+basisSlot::basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance)
+    : bounds(theBounds), totalNumOfBasisFn(0),
+      integral(theIntegral), variance(theVariance), numberTimesSampled(nhits),
+      enoughData(false) // FIXME: is this correct?
+	{	}
+
 basisSlot::basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn)
+    : bounds(theBounds), totalNumOfBasisFn(theTotalNumOfBasisFn>0? theTotalNumOfBasisFn : 0),
+      integral(0), variance(0), numberTimesSampled(0), enoughData(false)
 	{
-	bounds=theBounds;
-	totalNumOfBasisFn=0;
-	if(theTotalNumOfBasisFn>0) totalNumOfBasisFn=theTotalNumOfBasisFn;
 	GramSchmidtCoeffs.resize(totalNumOfBasisFn);
-	integral=0;
-	variance=0;
-	numberTimesSampled=0;
-	enoughData=false;
 	for(int i=0; i<totalNumOfBasisFn; i++)
 		{
 		sampledCoeffsValues.push_back(0);

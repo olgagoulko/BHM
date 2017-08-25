@@ -3,11 +3,13 @@
 #include "spline.hpp"
 #include "histogram.hpp"
 
+#include <cstdio>
+
 using namespace std; 
 
 vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotWidth, int numberOverlaps, int totalNumOfBasisFn)
 	{
-	if(numberOverlaps<1) numberOverlaps = 10;
+	if(numberOverlaps<1) numberOverlaps = 1;
 	
 	if(totalNumOfBasisFn<0) totalNumOfBasisFn=0;
 	
@@ -121,6 +123,58 @@ histogramBasis::histogramBasis(const histogramBasis& toBeCopied)
 		else if(currentBounds.getUpperBound()>upperBound) upperBound=currentBounds.getUpperBound();
 		}
 	}
+
+
+namespace {
+    /// convenience class to hold histogram line
+    struct hist_line_s {
+        int nhits;
+        double xmin, avg, m2;
+        
+        hist_line_s(): nhits(), xmin(), avg(1.0), m2(0.0) {}
+
+        /// reads a line with 1..4 numbers from the stream; returns number of values read, or -1 on read error
+        int read(std::istream& istrm, std::string& linebuf)
+        {
+            if (!std::getline(istrm, linebuf)) return -1;
+            int count=std::sscanf(linebuf.c_str(), "%lf %d %lf %lf",
+                                  &xmin, &nhits, &avg, &m2);
+            return count;
+        }
+    };
+}
+
+histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0), lowerBound(0), upperBound(0), basisSlots()
+{
+    std::string linebuf; // mostly for diagnostics
+    hist_line_s histline;
+
+    // first line must contain 4 numbers
+    if (histline.read(istrm, linebuf)!=4) {
+        throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
+    }
+    
+    int nhits_total=0;
+    for ( ; ; ++nhits_total) {
+        hist_line_s histline_next; // this is the "next" (or the "last" (truncated)) histogram line
+        int ndata=histline_next.read(istrm, linebuf);
+        if (ndata==-1) throw InvalidFileFormatError("Unexpected EOF");
+        if (ndata==0 || ndata==3 || ndata>4) throw InvalidFileFormatError("Invalid input line:\n>"+linebuf);
+
+        if (histline_next.xmin <= histline.xmin) throw OverlappingSlot("Invalid input line:\n>"+linebuf);
+
+        slotBounds bounds=slotBounds(histline.xmin, histline_next.xmin);
+        basisSlot* slot_ptr=new basisSlot(bounds, histline.nhits, histline.avg, histline.m2);
+        appendSlot(slot_ptr);
+        
+        if (ndata==1) {
+            break;
+        }
+        histline=histline_next;
+
+    }
+    if (!(nhits_total>0)) throw InvalidFileFormatError("No data points");
+}
 
 
 void histogramBasis::appendSlot(basisSlot* theSlot)
@@ -372,7 +426,8 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 			if(analysisBins[j][i] -> enoughSampled()) analysisBins[j][i] -> scale(norm);
 			else analysisBins[j].erase(analysisBins[j].begin()+i);
 			}
-		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize/4) || (analysisBins[j].size()==0)) 
+                  // FIXME: replace /4 with user-defined coefficient? can be set to 0 by user
+		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize/4) || (analysisBins[j].size()==0))
 			{
 			breakPoint=j; break;
 			}
@@ -497,7 +552,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 			}
 		if(allSplinesGood) break;
 		}
-	
+
 	if(!allSplinesGood)
                 {
                     jumpSuppression=0;

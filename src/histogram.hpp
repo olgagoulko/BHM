@@ -12,6 +12,9 @@ struct fitAcceptanceThreshold {
 	int steps;
 } ;
 
+/// Read basis slots from a formatted stream (a file)
+std::vector<basisSlot*> readBasisSlots(std::istream&);
+
 std::vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotWidth, int numberOverlaps = 1, int totalNumOfBasisFn = 0);
 
 class histogramBasis {
@@ -37,9 +40,31 @@ public:
             NotEnoughData_Error() : std::runtime_error("Not enough data for analysis")
             {}
         };
+
+        class InvalidFileFormatError : public std::runtime_error {
+          public:
+            explicit InvalidFileFormatError(const std::string& reason) :
+                std::runtime_error("Invalid format of the input file: "+reason)
+            {}
+        };
+
+        class OverlappingSlot : public std::runtime_error {
+          public:
+            explicit OverlappingSlot(const std::string& reason) :
+                std::runtime_error("Overlapping slot when reading from file: "+reason)
+            {}
+        };
+
     
 	histogramBasis(std::vector<basisSlot*> theBasisSlots);
-	~histogramBasis();
+
+        /// Construct from a formatted stream (e.g., a file)
+        histogramBasis(std::istream&);
+
+        ~histogramBasis();
+
+        
+    
 	histogramBasis& operator= (const histogramBasis& toBeAssigned);
 	histogramBasis (const histogramBasis& toBeCopied);
 	

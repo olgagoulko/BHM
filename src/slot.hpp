@@ -50,7 +50,6 @@ public:
 };
 
 class basisSlot {
-	
 protected:
 	
 	slotBounds bounds;
@@ -65,8 +64,12 @@ protected:
 	bool enoughData;
 	
 public:
-	
+
+        /// Initialize empty slot
 	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
+        /// Initialize and pre-fill a slot without basis functions
+        basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance);
+
 	virtual basisSlot* Clone() { return new basisSlot(*this);}
 	virtual ~basisSlot() {}
 	
