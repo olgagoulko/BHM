@@ -59,7 +59,7 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 	}
 
 
-histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots)
+histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfSamples(0)
 	{
 	valuesOutsideBounds = new excessBin();
 	lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
@@ -91,6 +91,7 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 		basisSlots.clear();
 		
 		lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+                numberOfSamples=toBeAssigned.numberOfSamples;
 			
 		for (unsigned int i=0;i<toBeAssigned.getSize();i++)
 			{
@@ -106,7 +107,7 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 	return *this;
 	}
 	
-histogramBasis::histogramBasis(const histogramBasis& toBeCopied)
+histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfSamples(toBeCopied.numberOfSamples)
 	{
 	valuesOutsideBounds = new excessBin(toBeCopied.getExcessCounter(),toBeCopied.getExcessValues(1.));
 	
@@ -144,7 +145,8 @@ namespace {
     };
 }
 
-histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0), lowerBound(0), upperBound(0), basisSlots()
+histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0), lowerBound(0), upperBound(0),
+                                                      basisSlots(), numberOfSamples(0)
 {
     std::string linebuf; // mostly for diagnostics
     hist_line_s histline;
@@ -154,8 +156,7 @@ histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0), lo
         throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
     }
     
-    int nhits_total=0;
-    for ( ; ; ++nhits_total) {
+    for ( ; ; ) {
         hist_line_s histline_next; // this is the "next" (or the "last" (truncated)) histogram line
         int ndata=histline_next.read(istrm, linebuf);
         if (ndata==-1) throw InvalidFileFormatError("Unexpected EOF");
@@ -173,13 +174,14 @@ histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0), lo
         histline=histline_next;
 
     }
-    if (!(nhits_total>0)) throw InvalidFileFormatError("No data points");
+    if (!(numberOfSamples>0)) throw InvalidFileFormatError("No data points");
 }
 
 
 void histogramBasis::appendSlot(basisSlot* theSlot)
 	{
 	basisSlots.push_back(theSlot);
+        numberOfSamples += theSlot->getNumberTimesSampled();
 	if((theSlot -> getBounds()).getLowerBound()<lowerBound) lowerBound=(theSlot -> getBounds()).getLowerBound();
 	if((theSlot -> getBounds()).getIsInfinite()) noUpperBound=true;
 	else if((theSlot -> getBounds()).getUpperBound()>upperBound) upperBound=(theSlot -> getBounds()).getUpperBound();
@@ -225,9 +227,17 @@ void histogramBasis::sample(double variable, double valueToSample)
 	bool isOutsideBounds=true;
 	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
-		if( basisSlots[i] -> checkIfInBasisSlot(variable) ) {basisSlots[i] -> sample(variable,valueToSample); isOutsideBounds=false;}
+		    if( basisSlots[i] -> checkIfInBasisSlot(variable) )
+                        {
+                            basisSlots[i] -> sample(variable,valueToSample); isOutsideBounds=false;
+                        }
 		}
-	if(isOutsideBounds) valuesOutsideBounds -> sample(variable, valueToSample);
+	if(isOutsideBounds)
+            {
+                valuesOutsideBounds -> sample(variable, valueToSample);
+            } else {
+                ++numberOfSamples;
+            }
 	}
 
 void histogramBasis::sampleUniform(double variable, double valueToSample)
@@ -237,6 +247,7 @@ void histogramBasis::sampleUniform(double variable, double valueToSample)
 	else 
 		{
 		basisSlots[int((variable-lowerBound)/((basisSlots[0] -> getBounds()).slotWidth()))] -> sample(variable,valueToSample);
+                ++numberOfSamples;
 		}
 	}
 

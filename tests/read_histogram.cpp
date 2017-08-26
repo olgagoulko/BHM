@@ -162,8 +162,10 @@ static void read()
 
     sput_fail_unless(hist.getSize()==nslots, "Histogram size");
     if (nslots!=hist.getSize()) return;
-    
+
+    unsigned long nsamples=0;
     for (unsigned int i=0; i<hist.getSize(); ++i) {
+        nsamples += slots[i][2];
         sput_fail_unless(hist.getSlot(i)->getBounds().getLowerBound() == slots[i][0],
                          "Lower bound");
         sput_fail_unless(hist.getSlot(i)->getBounds().getUpperBound() == slots[i][1],
@@ -175,6 +177,7 @@ static void read()
         sput_fail_unless(hist.getSlot(i)->getVariance() == slots[i][4],
                          "m2");
     }
+    sput_fail_unless(hist.getNumberOfSamples()==nsamples, "Number of samples");
 }
 
 int main(int argc, char **argv)

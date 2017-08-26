@@ -26,6 +26,7 @@ private:
 	double upperBound;
 	bool noUpperBound;
 	std::vector<basisSlot*> basisSlots;
+        unsigned long numberOfSamples;
 	
 public:
 
@@ -73,6 +74,7 @@ public:
 	
 	basisSlot* getSlot(unsigned int whichSlot) const;
 	unsigned int getSize() const {return basisSlots.size();}
+        unsigned long getNumberOfSamples() const { return numberOfSamples; } // FIXME: does NOT count out-of-bounds samples 
 	long getExcessCounter() const {return valuesOutsideBounds->getExcessCounter();}
 	double getExcessValues(double norm) const {return valuesOutsideBounds->getExcessValues(norm);}
 	
