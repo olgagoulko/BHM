@@ -6,6 +6,22 @@
 
 using namespace std; 
 
+static void test_histogram_bounds()
+{
+    double minVar=-10;
+    double maxVar=-5;
+    double slotWidth=0.5;
+    int numberOverlaps=0;
+    int totalNumOfBasisFn=0;
+    vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
+    histogramBasis hist(histogramVector);
+
+    std::cout << "upper=" << hist.getUpperBound() << " lower=" << hist.getLowerBound() << std::endl;
+    sput_fail_unless(hist.getUpperBound()==maxVar, "Upper bound");
+    sput_fail_unless(hist.getLowerBound()==minVar, "Lower bound");
+    sput_fail_unless(hist.hasUpperBound(), "Has upper bound");
+}
+    
 static void test_histogram()
 {
 	double minVar=0; double maxVar=5; double slotWidth=0.5; int numberOverlaps=5; int totalNumOfBasisFn=4;
@@ -167,6 +183,7 @@ int main(int argc, char **argv) {
 	sput_start_testing();
 
 	sput_enter_suite("test_histogram()");
+        sput_run_test(test_histogram_bounds);
 	sput_run_test(test_histogram);
 	
 	sput_enter_suite("test_combinedSlot()");

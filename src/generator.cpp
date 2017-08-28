@@ -145,6 +145,10 @@ int Main(int argc, char **argv) {
 		}
 	output << maxVar << endl;
 
+        // DEBUG!
+        std::cerr << "DEBUG: Generated histogram:\n";
+        std::cerr << binHistogram << std::endl;
+        
 	return OK;
 	
 }

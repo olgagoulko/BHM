@@ -4,6 +4,7 @@
 #include "histogram.hpp"
 
 #include <cstdio>
+#include <cassert>
 
 using namespace std; 
 
@@ -62,7 +63,11 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfSamples(0)
 	{
 	valuesOutsideBounds = new excessBin();
-	lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+        // FIXME: BUG: what if theBasisSlots.size()==0 ? I am inserting an assert() for now.
+        assert(theBasisSlots.size()>0);
+	lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound();
+	upperBound=(theBasisSlots[0] -> getBounds()).getUpperBound();
+        noUpperBound=false;
 	for(unsigned int i=0;i<theBasisSlots.size();i++)
 		{
 		basisSlots.push_back(theBasisSlots[i]);
@@ -145,36 +150,48 @@ namespace {
     };
 }
 
-histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0), lowerBound(0), upperBound(0),
+histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(new excessBin()),
+                                                      lowerBound(0), upperBound(0),
+                                                      noUpperBound(false),
                                                       basisSlots(), numberOfSamples(0)
 {
-    std::string linebuf; // mostly for diagnostics
-    hist_line_s histline;
+    try {
+        std::string linebuf; // mostly for diagnostics
+        hist_line_s histline;
 
-    // first line must contain 4 numbers
-    if (histline.read(istrm, linebuf)!=4) {
-        throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
-    }
-    
-    for ( ; ; ) {
-        hist_line_s histline_next; // this is the "next" (or the "last" (truncated)) histogram line
-        int ndata=histline_next.read(istrm, linebuf);
-        if (ndata==-1) throw InvalidFileFormatError("Unexpected EOF");
-        if (ndata==0 || ndata==3 || ndata>4) throw InvalidFileFormatError("Invalid input line:\n>"+linebuf);
-
-        if (histline_next.xmin <= histline.xmin) throw OverlappingSlot("Invalid input line:\n>"+linebuf);
-
-        slotBounds bounds=slotBounds(histline.xmin, histline_next.xmin);
-        basisSlot* slot_ptr=new basisSlot(bounds, histline.nhits, histline.avg, histline.m2);
-        appendSlot(slot_ptr);
-        
-        if (ndata==1) {
-            break;
+        // first line must contain 4 numbers
+        if (histline.read(istrm, linebuf)!=4) {
+            throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
         }
-        histline=histline_next;
+        lowerBound=histline.xmin;
+        upperBound=histline.xmin;
+    
+        for ( ; ; ) {
+            hist_line_s histline_next; // this is the "next" (or the "last" (truncated)) histogram line
+            int ndata=histline_next.read(istrm, linebuf);
+            if (ndata==-1) throw InvalidFileFormatError("Unexpected EOF");
+            if (ndata==0 || ndata==3 || ndata>4) throw InvalidFileFormatError("Invalid input line:\n>"+linebuf);
 
+            if (histline_next.xmin <= histline.xmin) throw OverlappingSlot("Invalid input line:\n>"+linebuf);
+
+            slotBounds bounds=slotBounds(histline.xmin, histline_next.xmin);
+            basisSlot* slot_ptr=new basisSlot(bounds, histline.nhits, histline.avg, histline.m2);
+            appendSlot(slot_ptr);
+        
+            if (ndata==1) {
+                break;
+            }
+            histline=histline_next;
+
+        }
+        if (!(numberOfSamples>0)) throw InvalidFileFormatError("No data points");
+    } catch (...) {
+        // FIXME: This is a very bad design, but better than leaking memory;
+        // FIXME: `valuesOutsideBounds` should not be a raw pointer (or a pointer at all, for that matter!)
+        // FIXME: and a proper RAII approach should be used instead.
+        delete valuesOutsideBounds;
+        throw;
     }
-    if (!(numberOfSamples>0)) throw InvalidFileFormatError("No data points");
 }
 
 
@@ -644,6 +661,32 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	return result;
 	}
 
+
+std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
+{
+    ostrm << "Excess bin pointer: " << static_cast<void*>(hist.valuesOutsideBounds) << std::endl;
+    ostrm << "Excess bin counter: " << hist.getExcessCounter() << std::endl
+          << "Excess bin values: " << hist.getExcessValues(1.00) << std::endl
+          << "No upper bound: " << hist.noUpperBound << std::endl
+          << "Lower bound: " << hist.lowerBound << std::endl
+          << "Upper bound: " << hist.upperBound << std::endl
+          << "Number of samples: " << hist.numberOfSamples << std::endl
+          << "Number of basis slots: " << hist.basisSlots.size() << std::endl;
+    for(unsigned int i=0; i<hist.getSize(); ++i) 
+    {
+        basisSlot* slot = hist.getSlot(i);
+        ostrm << slot->getBounds().getLowerBound() << '\t'
+              << slot->getNumberTimesSampled() << '\t'
+              << slot->sampledIntegral() << '\t'
+              << slot->getVariance()
+              << '\n';
+    }
+    if (hist.getSize()!=0) { 
+        ostrm << hist.getSlot(hist.getSize()-1)->getBounds().getUpperBound()
+              << endl;
+    }
+    return ostrm;
+}
 
 
 

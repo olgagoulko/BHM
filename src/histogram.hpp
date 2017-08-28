@@ -5,6 +5,8 @@
 #include "slot.hpp" 
 #include "spline.hpp"
 
+#include <iosfwd>
+
 struct fitAcceptanceThreshold {
 	fitAcceptanceThreshold() : max(0), steps(0) {}
 	double min;
@@ -57,6 +59,12 @@ public:
         };
 
     
+        /// Create the histogram from the vector of slots (e.g., obtained via `generateBasisSlots()`
+        /** @warning
+            The histogram object takes the ownership of the pointers to slots. Caller must not deallocate the pointers.
+            @bug
+            The pointers must be heap-allocated via `new`, otherwise the behavior is undefined.
+        */
 	histogramBasis(std::vector<basisSlot*> theBasisSlots);
 
         /// Construct from a formatted stream (e.g., a file)
@@ -68,12 +76,21 @@ public:
     
 	histogramBasis& operator= (const histogramBasis& toBeAssigned);
 	histogramBasis (const histogramBasis& toBeCopied);
-	
+
+        /// Add the slot to the histogram.
+        /** @warning
+            The histogram object takes the ownership of the pointer. Caller must not deallocate the pointer.
+            @bug
+            The pointer must be heap-allocated via `new`, otherwise the behavior is undefined.
+        */
 	void appendSlot(basisSlot* theSlot);
 	basisSlot* combinedSlot(unsigned int startPoint, unsigned int endPoint) const;
 	
 	basisSlot* getSlot(unsigned int whichSlot) const;
 	unsigned int getSize() const {return basisSlots.size();}
+        double getLowerBound() const { return lowerBound; }
+        double getUpperBound() const { return upperBound; } // FIXME: what should it return for "no upper bound"? +INF?
+        bool hasUpperBound() const { return !noUpperBound; }
         unsigned long getNumberOfSamples() const { return numberOfSamples; } // FIXME: does NOT count out-of-bounds samples 
 	long getExcessCounter() const {return valuesOutsideBounds->getExcessCounter();}
 	double getExcessValues(double norm) const {return valuesOutsideBounds->getExcessValues(norm);}
@@ -91,8 +108,13 @@ public:
 	
 	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm);
         splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool verbose, bool fail_if_zero);
+
+    // DEBUG!
+    friend std::ostream& operator<<(std::ostream& , const histogramBasis&);
 	
 };
+std::ostream& operator<<(std::ostream& , const histogramBasis&);
+
 
 splineArray matchedSplineFit(std::vector< std::vector< basisSlot* > > currentAnalysisBins, std::vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, std::vector< double > aMaxVector, std::vector< double > chisqArray);
 

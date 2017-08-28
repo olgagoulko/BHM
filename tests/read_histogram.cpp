@@ -135,6 +135,37 @@ static void read_overlapped()
     sput_fail_unless(ok, "Overlapping slot exception");
 }
 
+static void read_bounds()
+{
+    const std::string input=
+        "-8.75  10  1.  0.\n"
+        "-7.5   20  0.5 0.\n"
+        "-6.5   30  1.  0.25\n"
+        "-5.75  40  1.5  0.75\n"
+        "-4.25  45\n"
+        "-3.25  5\n"
+        "-3.0\n";
+
+    const double slots[6][5]=
+    {
+        {-8.75, -7.5,  10,  1.0,  0.00},
+        {-7.5,  -6.5,  20,  0.5,  0.00},
+        {-6.5,  -5.75, 30,  1.0,  0.25},
+        {-5.75, -4.25, 40,  1.5,  0.75},
+        {-4.25, -3.25, 45,  1.0,  0.00},
+        {-3.25, -3.0,   5,  1.0,  0.00}
+    };
+    const std::size_t nslots=sizeof(slots)/sizeof(*slots);
+    
+    std::istringstream istrm(input);
+    histogramBasis hist(istrm);
+
+    sput_fail_unless(hist.getLowerBound()==slots[0][0], "Histogram lower bound");
+    sput_fail_unless(hist.getUpperBound()==slots[nslots-1][1], "Histogram upper bound");
+    sput_fail_unless(hist.hasUpperBound(), "Histogram has upper bound");
+    sput_fail_unless(hist.getSize()==nslots, "Histogram size");
+}    
+
 static void read()
 {
     const std::string input=
@@ -160,6 +191,9 @@ static void read()
     std::istringstream istrm(input);
     histogramBasis hist(istrm);
 
+    sput_fail_unless(hist.getLowerBound()==slots[0][0], "Histogram lower bound");
+    sput_fail_unless(hist.getUpperBound()==slots[nslots-1][1], "Histogram upper bound");
+    sput_fail_unless(hist.hasUpperBound(), "Histogram has upper bound");
     sput_fail_unless(hist.getSize()==nslots, "Histogram size");
     if (nslots!=hist.getSize()) return;
 
@@ -167,17 +201,17 @@ static void read()
     for (unsigned int i=0; i<hist.getSize(); ++i) {
         nsamples += slots[i][2];
         sput_fail_unless(hist.getSlot(i)->getBounds().getLowerBound() == slots[i][0],
-                         "Lower bound");
+                         "Slot lower bound");
         sput_fail_unless(hist.getSlot(i)->getBounds().getUpperBound() == slots[i][1],
-                         "Upper bound");
+                         "Slot upper bound");
         sput_fail_unless(hist.getSlot(i)->getNumberTimesSampled() == slots[i][2],
-                         "Number of samples");
+                         "Slot number of samples");
         sput_fail_unless(hist.getSlot(i)->sampledIntegral() == slots[i][3],
                          "Integral");
         sput_fail_unless(hist.getSlot(i)->getVariance() == slots[i][4],
                          "m2");
     }
-    sput_fail_unless(hist.getNumberOfSamples()==nsamples, "Number of samples");
+    sput_fail_unless(hist.getNumberOfSamples()==nsamples, "Histogram number of samples");
 }
 
 int main(int argc, char **argv)
@@ -193,6 +227,7 @@ int main(int argc, char **argv)
     sput_run_test(read_garbage2);
     sput_run_test(read_malformatted);
     sput_run_test(read_overlapped);
+    sput_run_test(read_bounds);
     sput_run_test(read);
 
     sput_finish_testing();
