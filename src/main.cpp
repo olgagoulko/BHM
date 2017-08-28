@@ -127,7 +127,7 @@ int Main(int argc, char **argv) {
         iniparser::param par(argv[1]); // FIXME: can throw!
 
 	cout << "----------------- Example BHM code ----------------" << endl;
-#define USE_INTERNAL_DATA 1
+#define USE_INTERNAL_DATA 0
 #if USE_INTERNAL_DATA
 	long unsigned int seed=956475;//time(NULL);
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
@@ -225,9 +225,8 @@ int Main(int argc, char **argv) {
 #endif // USE_INTERNAL_DATA
         infile.close();
 
-        // DEBUG:
-        std::cerr << "DEBUG: The histogram we read is:\n"
-                  << binHistogram << std::endl;
+        // std::cerr << "DEBUG: The histogram we read is:\n"
+        //           << binHistogram << std::endl;
         
         if (ilog2(binHistogram.getSize())<0) {
             std::cerr << "Number of bins (" << binHistogram.getSize()
@@ -256,8 +255,8 @@ int Main(int argc, char **argv) {
             std::cout << "Input histogram:"
                       << "\nNumber of bins: " << binHistogram.getSize()
                       << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
-                      << "\nLower bound: " << binHistogram.getSlot(0)->getBounds().getLowerBound()
-                      << "\nUpper bound: " << binHistogram.getSlot(binHistogram.getSize()-1)->getBounds().getUpperBound()
+                      << "\nLower bound: " << binHistogram.getLowerBound()
+                      << "\nUpper bound: " << binHistogram.getUpperBound()
                       << std::endl;
         }
         

@@ -137,17 +137,7 @@ int Main(int argc, char **argv) {
 		binHistogram.sampleUniform(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		}
 
-
-	for(unsigned int i=0; i<numberHistogramBins;i++) 
-		{
-		basisSlot* currentSlot = binHistogram.getSlot(i);
-		output << setprecision(12) << currentSlot->getBounds().getLowerBound() << '\t' << currentSlot -> getNumberTimesSampled() << '\t' << currentSlot->sampledIntegral() << '\t' << currentSlot->getVariance() << endl;
-		}
-	output << maxVar << endl;
-
-        // DEBUG!
-        std::cerr << "DEBUG: Generated histogram:\n";
-        std::cerr << binHistogram << std::endl;
+        output << setprecision(12) << binHistogram;
         
 	return OK;
 	

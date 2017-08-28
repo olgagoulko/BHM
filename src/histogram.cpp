@@ -664,14 +664,6 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 
 std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
 {
-    ostrm << "Excess bin pointer: " << static_cast<void*>(hist.valuesOutsideBounds) << std::endl;
-    ostrm << "Excess bin counter: " << hist.getExcessCounter() << std::endl
-          << "Excess bin values: " << hist.getExcessValues(1.00) << std::endl
-          << "No upper bound: " << hist.noUpperBound << std::endl
-          << "Lower bound: " << hist.lowerBound << std::endl
-          << "Upper bound: " << hist.upperBound << std::endl
-          << "Number of samples: " << hist.numberOfSamples << std::endl
-          << "Number of basis slots: " << hist.basisSlots.size() << std::endl;
     for(unsigned int i=0; i<hist.getSize(); ++i) 
     {
         basisSlot* slot = hist.getSlot(i);
