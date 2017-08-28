@@ -127,7 +127,8 @@ int Main(int argc, char **argv) {
         iniparser::param par(argv[1]); // FIXME: can throw!
 
 	cout << "----------------- Example BHM code ----------------" << endl;
-	
+#define USE_INTERNAL_DATA 0
+#if USE_INTERNAL_DATA
 	long unsigned int seed=956475;//time(NULL);
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
 	gsl_rng_set (RNG, seed);
@@ -162,7 +163,7 @@ int Main(int argc, char **argv) {
 		binHistogram.sampleUniform(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		basisHistogram.sample(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
 		}
-
+#endif // USE_INTERNAL_DATA
         int splinePolynomialOrder=par.get(":SplineOrder", 4);
         if (splinePolynomialOrder<0) {
             std::cerr << "Polynomial order cannot be less than 0" << std::endl;
@@ -191,9 +192,23 @@ int Main(int argc, char **argv) {
         bool fail_if_zero=par.get(":FailOnZeroFit", false);
         bool print_fit=par.get(":PrintFitInfo", false);
 
+        std::string infile_name=par.get(":Data","");
+        if (infile_name.empty()) {
+            std::cerr << "Input file name must be provided via 'Data' parameter"
+                      << std::endl;
+            return BAD_ARGS;
+        }
+
         std::string outfile_name=par.get(":OutputName","");
         if (outfile_name.empty()) {
             std::cerr << "Output file name must be provided via 'OutputName' parameter"
+                      << std::endl;
+            return BAD_ARGS;
+        }
+
+        std::ifstream infile(infile_name.c_str());
+        if (!infile) {
+            std::cerr << "Cannot open input file '" << infile_name << "'"
                       << std::endl;
             return BAD_ARGS;
         }
@@ -204,6 +219,11 @@ int Main(int argc, char **argv) {
                       << std::endl;
             return BAD_ARGS;
         }
+
+#if !USE_INTERNAL_DATA        
+        histogramBasis binHistogram(infile);
+#endif // USE_INTERNAL_DATA
+        infile.close();
 
         if (ilog2(binHistogram.getSize())<0) {
             std::cerr << "Number of bins (" << binHistogram.getSize()
@@ -218,18 +238,27 @@ int Main(int argc, char **argv) {
                       << "SplineOrder = " << splineOrder-1 << " # spline order\n"
                       << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
                       << "Threshold = " << threshold.min << " # minimal goodness-of-fit threshold\n"
-		      << "Threshold maximum = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
-		      << "Threshold steps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
+		      << "ThresholdMax = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
+		      << "ThresholdSteps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
                       << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
                       << "Verbose = " << verbose << "# verbose output\n"
                       << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"
                       << "FailOnBadFit = " << fail_if_bad << "# do not proceed if the fit is bad\n"
                       << "PrintFitInfo = " << print_fit << "# print the fit information\n"
+                      << "Data = '" << infile_name << "' # Input histogram\n"
+                      << "OutputName = '" << outfile_name << "' # Output file to print results to\n"
+                      << std::endl;
+
+            std::cout << "Input histogram:"
+                      << "\nNumber of bins: " << binHistogram.getSize()
+                      << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
+                      << "\nLower bound: " << binHistogram.getSlot(0)->getBounds().getLowerBound()
+                      << "\nUpper bound: " << binHistogram.getSlot(binHistogram.getSize()-1)->getBounds().getUpperBound()
                       << std::endl;
         }
         
 	cout << endl << "BHM fit:" << endl;
-	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, samplingSteps,
+	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, binHistogram.getNumberOfSamples(),
                                                      threshold, jumpSuppression,
                                                      verbose, fail_if_zero);
 	cout << endl;
