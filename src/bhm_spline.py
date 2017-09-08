@@ -123,11 +123,16 @@ class BHMSpline:
         """Convenience method: plot the spline and the reference function ref_fn, if supplied"""
         x=np.linspace(self._xmin, self._xmax)
         y=self(x)
+        yerr=self.errorbar(x)
+
+        ax=plt.axes()
+
+        ax.plot(x,y,label="spline")
+        ax.fill_between(x, y-yerr,y+yerr, alpha=0.3)
         if ref_fn:
-            yref=ref_fn(x)
-            return plt.plot(x,y, x,yref)
-        else:
-            return plt.plot(x,y)
+            ax.plot(x, ref_fn(x), label="reference")
+        ax.legend()
+        return
 
 
 def Main(argv):
@@ -140,10 +145,7 @@ def Main(argv):
         return 2
 
     spline=BHMSpline(sys.argv[1])
-
-    # TEST:
-    def yref(x): return np.exp(-3*x)/(-1 + np.exp(6))*3*np.exp(9)
-    #spline.plot(yref)
+    
     spline.plot()
     plt.show()
     return 0
