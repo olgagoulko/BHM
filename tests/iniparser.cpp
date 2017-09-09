@@ -83,7 +83,7 @@ static void test_get_string_data()
     iniparser::param p("sample.param");
     std::string val=p.get(":data", std::string("NONE"));
     std::cout << "value=" << val << std::endl;
-    sput_fail_unless(val=="input.dat", "Getting string param");
+    sput_fail_unless(val=="histogram.dat", "Getting string param");
 }
 
 static void test_get_string_chardef_data()
@@ -91,7 +91,7 @@ static void test_get_string_chardef_data()
     iniparser::param p("sample.param");
     std::string val=p.get(":data", "NONE");
     std::cout << "value=" << val << std::endl;
-    sput_fail_unless(val=="input.dat", "Getting string param with char* default");
+    sput_fail_unless(val=="histogram.dat", "Getting string param with char* default");
 }
 
 static void test_get_int_nodata()
