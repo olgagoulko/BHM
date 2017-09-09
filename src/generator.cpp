@@ -201,10 +201,9 @@ int Main(int argc, char **argv) {
         }
         std::ostream& output=*(out_hist_name.empty()? &std::cout : &output_file_stream);
         bool verbose=par.get(":VERBOSE",default_verbose);
+        LOGGER_VERBOSITY(verbose);
         
-	if (verbose) {
-            cout << "Generating example histogram" << endl;
-        }
+	LOGGER << "Generating example histogram";
 	
 	long unsigned int seed=par.get(":RANDOMSEED", 0);
 	if(seed==0) seed=time(NULL);

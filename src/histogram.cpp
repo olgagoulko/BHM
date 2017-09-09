@@ -17,7 +17,7 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 	if(maxVar<minVar) {double newMin=maxVar; maxVar=minVar; minVar=newMin;}
 	
 	double range = maxVar-minVar;
-	if(range<VERY_SMALL_NUMBER) {cout << "ERROR: sampling interval too small; min = " << minVar << ", max = " << maxVar << ", range = " << range << endl; exit(EXIT_FAILURE);}
+	if(range<VERY_SMALL_NUMBER) {std::cerr << "ERROR: sampling interval too small; min = " << minVar << ", max = " << maxVar << ", range = " << range << endl; throw std::runtime_error("samling interval too small"); }
 	
 	if((slotWidth>range)||(slotWidth<0)) slotWidth=range/double(numberOverlaps);
 	
@@ -206,7 +206,7 @@ void histogramBasis::appendSlot(basisSlot* theSlot)
 
 basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int endPoint) const
 	{
-	if((startPoint>endPoint) || (endPoint>=basisSlots.size())) {cout << "ERROR in combinedSlot" << endl; exit(EXIT_FAILURE);}
+            if((startPoint>endPoint) || (endPoint>=basisSlots.size())) {std::cerr << "ERROR in combinedSlot" << endl; throw std::runtime_error("ERROR in combinedSlot"); }
 	else if(startPoint>endPoint) {unsigned int save=endPoint; endPoint=startPoint; startPoint=save;}
 	
 	for(unsigned int i=startPoint;i<=endPoint;i++)
@@ -234,7 +234,7 @@ basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int en
 
 basisSlot* histogramBasis::getSlot(unsigned int whichSlot) const
 	{
-	if(whichSlot>=basisSlots.size()) {cout << "ERROR in getSlot, " << whichSlot << " does not exist" << endl; exit(EXIT_FAILURE);}
+            if(whichSlot>=basisSlots.size()) {cerr << "ERROR in getSlot, " << whichSlot << " does not exist" << endl; throw std::runtime_error("Error in getSlot");}
 	return basisSlots[whichSlot];
 	}
 
@@ -467,7 +467,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool verbose, bool fail_if_zero)
+splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero)
 	{
 	if(splineOrder<1) {
             // rationale: it's caller's job to check parameters and issue warning to an appropriate log
@@ -494,7 +494,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
         }
 
 	if(isDataConsistentWithZero(analysisBins)==true) {
-            if (verbose) cout << "WARNING: Data is consistent with zero on the interval" << endl;
+            LOGGER << "WARNING: Data is consistent with zero on the interval";
             // rationale: we have to throw here because the return object is not going to be (meaningfully) constructed
             if (fail_if_zero) throw ConsistentWithZero_Error();
         }
@@ -509,7 +509,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	for(int thresholdStep=0; thresholdStep<=theThreshold.steps; thresholdStep++)
 		{
 		currentFitAcceptanceThreshold=theThreshold.min+thresholdStep*thresholdIncrease;
-		if(verbose) cout << "Begin BHM fitting with threshold T = " << currentFitAcceptanceThreshold << endl;
+		LOGGER << "Begin BHM fitting with threshold T = " << currentFitAcceptanceThreshold;
 		
 		intervalBounds.resize(0);
 		intervalOrders.resize(0);
@@ -533,7 +533,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 			chisqArray.resize(0);
 			for(unsigned int i=0;i<currentNumberIntervals;i++)
 				{
-				if(checkIntervals && verbose) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
+				if(checkIntervals) LOGGER << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")";
 				double chisqArrayElement = 1+currentFitAcceptanceThreshold*sqrt(2.);
 				bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
 				chisqArray.push_back(chisqArrayElement);
@@ -572,11 +572,10 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 			
 			if(allSplinesGood)
 				{
-				if (verbose) cout << "Good spline found with threshold T = " << currentFitAcceptanceThreshold << endl << endl;
+				LOGGER << "Good spline found with threshold T = " << currentFitAcceptanceThreshold;
 				break;
 				}
 			currentLevel++;
-			cout << endl;
 			}
 		if(allSplinesGood) break;
 		}
@@ -584,20 +583,18 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	if(!allSplinesGood)
                 {
                     jumpSuppression=0;
-                    if (verbose)
-                        cout << "No acceptable fit could be found with the current threshold "
-                             << currentFitAcceptanceThreshold
-                             << endl;
+                    LOGGER << "No acceptable fit could be found with the current threshold "
+                           << currentFitAcceptanceThreshold;
                 }
 	else if(intervalBounds.size()==1)
                 {
                     jumpSuppression=0; //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
-                    if (verbose) cout << "No knots for jump suppression" << endl;
+                    LOGGER << "No knots for jump suppression";
                 } 
 	
 	/**/if(jumpSuppression>0)
 		{
-		if (verbose) cout << "\nIterative consistent constraints procedure\n" << endl;
+		LOGGER << "\nIterative consistent constraints procedure\n";
 		aMaxVector.resize(0);
 		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
 		for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((geta3.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
@@ -614,12 +611,10 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 				{
 				iterations++;
 				allSplinesGood = result.checkOverallAcceptance(currentFitAcceptanceThreshold);
-				if (verbose)
-                                    cout << "Global suppression factor "
-                                         << jumpSuppression
-                                         << "; the interval fit is "
-                                         << (allSplinesGood? "good" : "not good")
-                                         << endl;
+				LOGGER << "Global suppression factor "
+                                       << jumpSuppression
+                                       << "; the interval fit is "
+                                       << (allSplinesGood? "good" : "not good");
 				
 				if(!allSplinesGood)
 					{
@@ -684,8 +679,8 @@ std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
 
 splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, vector<double> aMaxVector, vector<double> chisqArray)
 	{
-	if(intervalBounds.size()==0) {cout << "ERROR in matchedSplineFit, intervalBounds size is zero" << endl; exit(EXIT_FAILURE);}
-	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
+            if(intervalBounds.size()==0) { cerr << "ERROR in matchedSplineFit, intervalBounds size is zero" << endl; throw std::runtime_error("ERROR in matchedSplineFit"); }
+	if(splineOrder<1) {LOGGER << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1"; splineOrder=1;}
 	
 	unsigned int numberIntervals=intervalBounds.size();
 	unsigned int matrixRows = 0;
@@ -822,8 +817,8 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 
 	currentMatrixRow=0;
 	vector<double> theChisq; vector<int> theDOF;
-	cout << "Checking separate chi_n^2/n in spline fit" << endl;
-	cout << "level" << '\t' << "n" << '\t' << "chi_n^2/n" << '\t' << "sqrt(2/n)" << endl;
+	LOGGER << "Checking separate chi_n^2/n in spline fit\n"
+               << "level" << '\t' << "n" << '\t' << "chi_n^2/n" << '\t' << "sqrt(2/n)";
 	for(unsigned int j=0;j < currentAnalysisBins.size();j++)
 		{
 		int dof = currentAnalysisBins[j].size();
@@ -831,7 +826,7 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 		double chisq; gsl_blas_ddot (&currentgslb.vector, &currentgslb.vector, &chisq);
 		chisq*=double(pow(2,j))/double(dof);
 		theChisq.push_back(chisq); theDOF.push_back(dof);
-		cout << j << '\t' << dof << '\t' << chisq << '\t' << sqrt(2./double(dof)) << endl;
+		LOGGER << j << '\t' << dof << '\t' << chisq << '\t' << sqrt(2./double(dof));
 		currentMatrixRow+=dof;
 		}
 

@@ -103,8 +103,8 @@ public:
 	std::vector<double> bareBasisSampledCoeffs() const;
 	
 	std::ostream& printSlotInfo(std::ostream&) const;
-	void printGramSchmidtCoeffs() const;
-	void printSampledCoeffs() const;
+        void printGramSchmidtCoeffs(std::ostream& =std::cout) const;
+    void printSampledCoeffs(std::ostream& =std::cout) const;
 	
 }; 
 

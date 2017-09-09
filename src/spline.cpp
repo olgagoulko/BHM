@@ -2,6 +2,8 @@
 #include "slot.hpp"
 #include "spline.hpp"
 
+#include <cassert>
+
 using namespace std; 
 
 
@@ -24,7 +26,7 @@ bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > current
 	{
 	bool currentSplineGood=true;
 	if(intervalOrder>currentAnalysisBins.size())
-		{cout << "ERROR in checkIntervalAcceptance, intervalOrder " << intervalOrder << " is larger than size of analysis bins vector " << currentAnalysisBins.size() << endl; exit(EXIT_FAILURE);}
+		{cerr << "ERROR in checkIntervalAcceptance, intervalOrder " << intervalOrder << " is larger than size of analysis bins vector " << currentAnalysisBins.size() << endl; throw std::runtime_error("ERROR in checkIntervalAcceptance");}
 	for(unsigned int j=0;j<currentAnalysisBins.size()-intervalOrder;j++)
 		{
 		//test all bins fully within interval, order by order
@@ -48,17 +50,17 @@ bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > current
 			currentChisq*=1./double(numberSlotsAtCurrentLevel);
 			double delta=1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
 			if(delta<chisqArrayElement) chisqArrayElement=delta;
-			if(checkIntervals) cout << intervalOrder+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)) << endl;
+			if(checkIntervals) LOGGER << intervalOrder+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel));
 			if(currentChisq>1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; break;}
 			}
 		else 
 			{
-			if(checkIntervals) cout << "Only " << numberSlotsAtCurrentLevel << " good bins, not enough for evaluation" << endl;
+			if(checkIntervals) LOGGER << "Only " << numberSlotsAtCurrentLevel << " good bins, not enough for evaluation";
 			break;
 			}
 		}
 		
-	if(checkIntervals) {cout << "This interval fit is "; if(!currentSplineGood) cout << "not "; cout << "good" << endl;}
+	if(checkIntervals) {LOGGER << "This interval fit is " << (currentSplineGood?"":"not ") << "good";}
 	return currentSplineGood;
 	}
 
@@ -227,7 +229,7 @@ void splineArray::updateGoodness(bool acceptable, double threshold)
 
 splinePiece* splineArray::getSplinePiece(unsigned int whichPiece) const
 	{
-	if(whichPiece>=splines.size()) {cout << "ERROR in getSplinePiece, piece number " << whichPiece << " does not exist" << endl; exit(EXIT_FAILURE);}
+	if(whichPiece>=splines.size()) {cerr << "ERROR in getSplinePiece, piece number " << whichPiece << " does not exist" << endl; throw std::runtime_error("ERROR in getSplinePiece");}
 	return splines[whichPiece];
 	}
 
@@ -287,7 +289,7 @@ std::ostream& splineArray::printSplineArrayInfo(std::ostream& strm) const
 	{
 	strm << "##Lower Bound: " << lowerBound << endl;
 	strm << "##Upper Bound: " << upperBound << endl;
-	strm << "##Spline order: " << splineOrder << endl;
+	strm << "##Spline order: " << splineOrder-1 << endl;
 	strm << left << setw(4) << "## level" << '\t' << setw(8) << "n" << '\t'  << setw(12) << "chi_n^2/n" << '\t' << setw(12) << "sqrt(2/n)" << '\t' << setw(12) << "deviation in sqrt(2/n) units" << endl;
 	for(unsigned int i=0;i<levelsChiSquared.size();i++)
 		strm << "#" << left << setw(4) << setprecision(10) << i << '\t' << setw(8) <<  levelsDegreesOfFreedom[i] << '\t' << setw(12) << levelsChiSquared[i] << '\t' << setw(12) << sqrt(2./double(levelsDegreesOfFreedom[i])) << '\t' << setw(12) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
@@ -299,6 +301,26 @@ std::ostream& splineArray::printSplines(std::ostream& strm) const
 	{
 	// strm << lowerBound << " " << upperBound << " " << (splineOrder-1) << endl;
         strm << (splineOrder-1) << " " << splines.size() << endl;
+
+        assert(splines.size()==0 ||
+               (fabs(splines[0]->getBounds().getLowerBound() - lowerBound)<ACCURACY
+               && "First spline lower bound must be the same as array lower bound"));
+
+        assert(splines.size()==0 ||
+               (fabs(splines[splines.size()-1]->getBounds().getUpperBound() - upperBound)<ACCURACY
+               && "Last spline upper bound must be the same as array upper bound"));
+
+        strm << setprecision(10);
+        for(unsigned int i=0;i<splines.size();i++)
+                {
+                assert(i==0 ||
+                       (fabs(splines[i]->getBounds().getLowerBound() - splines[i-1]->getBounds().getUpperBound())<ACCURACY
+                       && "Left upper bound must be the same as right lower bound"));
+
+                strm << splines[i]->getBounds().getLowerBound() << " ";
+                }
+        strm << upperBound << "\n";
+            
 	for(unsigned int i=0;i<splines.size();i++)
 		{
 		strm << "# spline piece " << (i+1) << endl;

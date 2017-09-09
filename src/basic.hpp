@@ -25,6 +25,9 @@
 #include <gsl/gsl_sf.h>
 #include <time.h>
 
+// Our logger class
+#include "logger.hpp"
+
 //basic parameters and constants
 #define PI 3.14159265358979323846
 #define VERY_SMALL_NUMBER 1e-10

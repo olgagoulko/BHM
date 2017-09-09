@@ -22,7 +22,7 @@ bool acceptreject(double probability, gsl_rng* RNG){
 
 bool accept=false;
 double random = gsl_rng_uniform(RNG);
-if(probability<0) {cout << "ERROR: negative probability in acceptreject" << endl; exit(EXIT_FAILURE);}
+if(probability<0) {cerr << "ERROR: negative probability in acceptreject" << endl; throw std::runtime_error("ERROR: negative probability in acceptreject"); }
 
 if(random<probability) accept=true;
 

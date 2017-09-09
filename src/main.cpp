@@ -22,9 +22,33 @@ int Main(int argc, char **argv) {
             print_help(argv[0], std::cerr);
             return BAD_ARGS;
         }
-        iniparser::param par(argv[1]); // FIXME: can throw!
 
-	cout << "----------------- Example BHM code ----------------" << endl;
+        // provision for empty argument as a special case
+        iniparser::param par;
+        if (argv[1][0]!='\0') {
+            par.load(argv[1]); // can throw
+        }
+        
+        std::string outfile_name=par.get(":OutputName","");
+	std::ofstream outfile_stream;
+        bool default_verbose=false;
+
+        if (!outfile_name.empty()) {
+            outfile_stream.open(outfile_name.c_str());
+            if (!outfile_stream) {
+                std::cerr << "Cannot open file '" << outfile_name << "'" << std::endl;
+                return BAD_ARGS;
+            }
+            default_verbose=true; // verbose by default only if output to a file
+        }
+
+        std::ostream& outfile=*(outfile_name.empty()? &std::cout : &outfile_stream);
+        bool verbose=par.get(":verbose",default_verbose);
+
+        LOGGER_VERBOSITY(verbose);
+
+        LOGGER << "----------------- Example BHM code ----------------";
+        
         int splinePolynomialOrder=par.get(":SplineOrder", 4);
         if (splinePolynomialOrder<0) {
             std::cerr << "Polynomial order cannot be less than 0" << std::endl;
@@ -46,47 +70,30 @@ int Main(int argc, char **argv) {
 	if(threshold.steps<0) threshold.steps=0;
 
         bool enableJumpSuppression=par.get(":JumpSuppression", false);
-        double jumpSuppression=enableJumpSuppression? 0 : 1.0;
+        double jumpSuppression=enableJumpSuppression? 1.0 : 0.0;
 
-        bool verbose=par.get(":verbose", true);
         bool fail_if_bad=par.get(":FailOnBadFit", true);
         bool fail_if_zero=par.get(":FailOnZeroFit", false);
-        bool print_fit=par.get(":PrintFitInfo", false);
+        bool print_fit=par.get(":PrintFitInfo", true);
+
 
         std::string infile_name=par.get(":Data","");
-        if (infile_name.empty()) {
-            std::cerr << "Input file name must be provided via 'Data' parameter"
-                      << std::endl;
-            return BAD_ARGS;
+        // If no infile name is given, use std::cin as the file stream
+        std::ifstream infile_stream;
+        if (!infile_name.empty()) {
+            infile_stream.open(infile_name.c_str());
+            if (!infile_stream) {
+                std::cerr << "Cannot open input file '" << infile_name << "'"
+                          << std::endl;
+                return BAD_ARGS;
+            }
         }
-
-        std::string outfile_name=par.get(":OutputName","");
-        if (outfile_name.empty()) {
-            std::cerr << "Output file name must be provided via 'OutputName' parameter"
-                      << std::endl;
-            return BAD_ARGS;
-        }
-
-        std::ifstream infile(infile_name.c_str());
-        if (!infile) {
-            std::cerr << "Cannot open input file '" << infile_name << "'"
-                      << std::endl;
-            return BAD_ARGS;
-        }
-
-        std::ofstream outfile(outfile_name.c_str());
-        if (!outfile) {
-            std::cerr << "Cannot open output file '" << outfile_name << "'"
-                      << std::endl;
-            return BAD_ARGS;
-        }
+        std::istream& infile = *(infile_name.empty()? &std::cin : &infile_stream);
 
         histogramBasis binHistogram(infile);
-        infile.close();
-
-        // std::cerr << "DEBUG: The histogram we read is:\n"
-        //           << binHistogram << std::endl;
         
+        if (!infile_name.empty()) infile_stream.close();
+     
         if (ilog2(binHistogram.getSize())<0) {
             std::cerr << "Number of bins (" << binHistogram.getSize()
                       << ") must be a power of 2"
@@ -94,46 +101,43 @@ int Main(int argc, char **argv) {
             return BAD_DATA;
         }
         
-        if (verbose) {
-            std::cout << std::boolalpha
-                      << "Input parameters:\n"
-                      << "SplineOrder = " << splineOrder-1 << " # spline order\n"
-                      << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
-                      << "Threshold = " << threshold.min << " # minimal goodness-of-fit threshold\n"
-		      << "ThresholdMax = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
-		      << "ThresholdSteps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
-                      << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
-                      << "Verbose = " << verbose << "# verbose output\n"
-                      << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"
-                      << "FailOnBadFit = " << fail_if_bad << "# do not proceed if the fit is bad\n"
-                      << "PrintFitInfo = " << print_fit << "# print the fit information\n"
-                      << "Data = '" << infile_name << "' # Input histogram\n"
-                      << "OutputName = '" << outfile_name << "' # Output file to print results to\n"
-                      << std::endl;
+        LOGGER << std::boolalpha
+               << "Input parameters:\n"
+               << "SplineOrder = " << splineOrder-1 << " # spline order\n"
+               << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
+               << "Threshold = " << threshold.min << " # minimal goodness-of-fit threshold\n"
+               << "ThresholdMax = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
+               << "ThresholdSteps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
+               << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
+               << "Verbose = " << verbose << " # verbose output\n"
+               << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"
+               << "FailOnBadFit = " << fail_if_bad << " # do not proceed if the fit is bad\n"
+               << "PrintFitInfo = " << print_fit << " # print the fit information\n"
+               << "Data = \"" << infile_name << "\" # Input histogram\n"
+               << "OutputName = \"" << outfile_name << "\" # Output file to print results to\n"
+               << "\nInput histogram:"
+               << "\nNumber of bins: " << binHistogram.getSize()
+               << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
+               << "\nLower bound: " << binHistogram.getLowerBound()
+               << "\nUpper bound: " << binHistogram.getUpperBound();
 
-            std::cout << "Input histogram:"
-                      << "\nNumber of bins: " << binHistogram.getSize()
-                      << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
-                      << "\nLower bound: " << binHistogram.getLowerBound()
-                      << "\nUpper bound: " << binHistogram.getUpperBound()
-                      << std::endl;
-        }
+        LOGGER << "BHM fit:";
         
-	cout << endl << "BHM fit:" << endl;
 	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, binHistogram.getNumberOfSamples(),
-                                                     threshold, jumpSuppression,
-                                                     verbose, fail_if_zero);
-	cout << endl;
+                                                     threshold, jumpSuppression, fail_if_zero);
+
         if (!testBHMfit.getAcceptance()) {
-            if (verbose) std::cout << "WARNING: no acceptable fit found" << std::endl;
+            LOGGER << "WARNING: no acceptable fit found";
             if (fail_if_bad) return BAD_FIT;
         }
         if (print_fit) {
-            testBHMfit.printSplineArrayInfo(std::cout); cout << endl;
+            testBHMfit.printSplineArrayInfo(std::cout);
         }
         
 	testBHMfit.printSplines(outfile);
+
 	return OK;
+	
 }
 
 int main(int argc, char** argv)
