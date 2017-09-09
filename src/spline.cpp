@@ -116,9 +116,9 @@ double splinePiece::splineDerivative(double variable, unsigned int derivativeOrd
 	}
 
 
-std::ostream& splinePiece::printSplinePiece(std::ostream& strm) const
+std::ostream& splinePiece::printSplinePiece(std::ostream& strm, verbosity_level_type vlevel) const
 	{
-	bounds.printBoundsInfo(strm, CONCISE);
+        if (vlevel==VERBOSE) bounds.printBoundsInfo(strm, CONCISE);
 	// strm << "spline piece order: " << splineOrder << endl;
 	// strm << "spline piece coefficients and error coefficients" << endl;
 	for(unsigned int i=0;i<splineOrder;i++) strm << setprecision(10) << splineCoefficients[i] << " ";
@@ -297,12 +297,12 @@ std::ostream& splineArray::printSplineArrayInfo(std::ostream& strm) const
 
 std::ostream& splineArray::printSplines(std::ostream& strm) const
 	{
-	strm << lowerBound << " " << upperBound << " " << (splineOrder-1) << endl;
-        strm << splines.size() << endl;
+	// strm << lowerBound << " " << upperBound << " " << (splineOrder-1) << endl;
+        strm << (splineOrder-1) << " " << splines.size() << endl;
 	for(unsigned int i=0;i<splines.size();i++)
 		{
-		strm << "# spline piece " << i << endl;
-		splines[i] -> printSplinePiece(strm);
+		strm << "# spline piece " << (i+1) << endl;
+		splines[i] -> printSplinePiece(strm, CONCISE);
 		}
         return strm;
 	}

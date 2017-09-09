@@ -32,7 +32,7 @@ public:
 	double splineIntegral(slotBounds theBounds) const;
 	double splineDerivative(double variable, unsigned int derivativeOrder) const;
 	
-	std::ostream& printSplinePiece(std::ostream&) const;
+	std::ostream& printSplinePiece(std::ostream&, verbosity_level_type verb=VERBOSE) const;
 	
 };
 
@@ -74,7 +74,7 @@ public:
 	double splineDerivative(double variable, unsigned int derivativeOrder) const;
 	
         std::ostream& printSplineArrayInfo(std::ostream&) const;
-	std::ostream& printSplines(std::ostream&) const;
+        std::ostream& printSplines(std::ostream&) const;
 	
 };
 
