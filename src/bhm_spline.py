@@ -26,20 +26,24 @@ class BHMSpline:
         """Read the file and fill relevant object variables"""
 
         with open(bhm_out_name,"r") as bhm_out:
-            line=bhm_out.readline()
-            self._xmin, self._xmax, order = np.fromstring(line, sep=" ")
+            # skip initial comment lines
+            while True:
+                line=bhm_out.readline()
+                if line[0]!='#' : break
+                
+            order, n_pieces = np.fromstring(line, sep=" ")
             self._order=int(order)
+            n_pieces=int(n_pieces)
+
             line=bhm_out.readline()
-            n_pieces=int(line)
-            self._knots_left=np.empty(n_pieces)
-            self._knots_right=np.empty(n_pieces)
+            self._knots = np.fromstring(line, sep=" ")
+            if self._knots.size != n_pieces+1:
+                raise ValueError("Incorrect number of knots %d" % self._knots.size)
+
             self._spline_pieces=[]
             self._errorbar_pieces=[]
             for i in range(0, n_pieces):
                 header=bhm_out.readline() # discarded
-
-                line=bhm_out.readline()
-                self._knots_left[i], self._knots_right[i] = np.fromstring(line, sep=" ")
 
                 line=bhm_out.readline()
                 coeffs = np.fromstring(line, sep=" ")
@@ -56,72 +60,45 @@ class BHMSpline:
 
         return
 
-    def __knots_ok(self):
-        """Check that the spline pieces knots do not have gaps"""
-        if np.any(self._knots_left[1:]!=self._knots_right[:-1]):
-            print("ERROR! There is a gap between a right knot and a left knot",file=sys.stderr)
-            print("Left knots:",self._knots_left,file=sys.stderr)
-            print("Right knots:",self._knots_right,file=sys.stderr)
-            return False
-
-        if self._xmin!=self._knots_left[0]:
-            print("ERROR! There is a gap between a leftmost knot and a minimum x",file=sys.stderr)
-            print("Leftmost knot=",self._knots_left[0],file=sys.stderr)
-            print("Minimum x=",self._xmin,file=sys.stderr)
-            return False
-
-        if self._xmax!=self._knots_right[-1]:
-            print("ERROR! There is a gap between a rightmost knot and a maximum x",file=sys.stderr)
-            print("Rightmost knot=",self._knots_right[-1],file=sys.stderr)
-            print("Maximum x=",self._xmax,file=sys.stderr)
-            return False
-
-        if np.any(self._knots_left >= self._knots_right):
-            print("ERROR! Some right knots are lesser than left knots",file=sys.stderr)
-            return False
-
-        return True
-
-
-
+    def __check_knots(self):
+        """Check that the spline knots are ordered properly"""
+        if not np.all(self._knots[:-1]<self._knots[1:]):
+            raise ValueError("Some left knots are greater or equal right knots")
+    
     def __init__(self, bhm_out_name):
         """Initialize the BHM object by reading the histogram from the given file name"""
         self.__read_file(bhm_out_name)
         # Sanity checks:
-        if not self.__knots_ok():
-            raise ValueError("Invalid data in the histogram file")
+        self.__check_knots()
         return
-
 
 
     def domain(self):
         """Return the domain of the spline as a tuple (xmin,xmax)"""
-        return (self._xmin, self._xmax)
-
+        return tuple(self._knots[[0,-1]])
 
 
     def __call__(self,x):
         """Return the value(s) of the BHM spline at point(s) x"""
-        if np.min(x)<self._xmin or np.max(x)>self._xmax:
+        if np.min(x)<self._knots[0] or np.max(x)>self._knots[-1]:
             raise ValueError("Argument is outside the spline domain")
         # prepare the boolean list for choosing spline pieces:
-        cond=[np.logical_and(x>=r[0],x<=r[1]) for r in zip(self._knots_left, self._knots_right)]
+        cond=[np.logical_and(x>=r[0],x<=r[1]) for r in zip(self._knots[:-1], self._knots[1:])]
         return np.piecewise(x, cond, self._spline_pieces)
 
 
     def errorbar(self, x):
         """Return the value(s) of the BHM spline error bar at point(s) x"""
-        if np.min(x)<self._xmin or np.max(x)>self._xmax:
+        if np.min(x)<self._knots[0] or np.max(x)>self._knots[-1]:
             raise ValueError("Argument is outside the spline domain")
         # prepare the boolean list for choosing spline pieces:
-        cond=[np.logical_and(x>=r[0],x<=r[1]) for r in zip(self._knots_left, self._knots_right)]
+        cond=[np.logical_and(x>=r[0],x<=r[1]) for r in zip(self._knots[:-1], self._knots[1:])]
         return np.piecewise(x, cond, self._errorbar_pieces)
-
 
 
     def plot(self, ref_fn=None):
         """Convenience method: plot the spline and the reference function ref_fn, if supplied"""
-        x=np.linspace(self._xmin, self._xmax)
+        x=np.linspace(*self.domain(),1000)
         y=self(x)
         yerr=self.errorbar(x)
 
