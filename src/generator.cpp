@@ -134,11 +134,13 @@ struct GaussianFromGSL : public testFunction_base
 
 static std::ostream& print_help(const char* argv0, std::ostream& strm) {
         strm
-            << "FIXME!!! Meaningful help should be printed here\n"
-            << "Usage:\n" << argv0 << " param_file.ini\n"
+            << "Program to generate test data\n"
+            << "Usage:\n"
+            << "1) " << argv0 << " param_file.ini\n"
+            << "Generates the histogram according to the parameters in `param_file.ini`\n"
             << "OR\n"
-            << argv0 << " -python #\n"
-            << "where # is a function number."
+            << "2) " << argv0 << " -python n\n"
+            << "(where n is a function number, 0-4) prints the Python expression corresponding to the generated function."
             << std::endl;
 
         return strm;

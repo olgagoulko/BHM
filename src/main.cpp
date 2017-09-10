@@ -9,8 +9,15 @@ using namespace std;
 
 static std::ostream& print_help(const char* argv0, std::ostream& strm) {
         strm
-            << "FIXME!!! Meaningful help should be printed here\n"
-            << "Usage:\n" << argv0 << " param_file.ini"
+            << "Usage:\n"
+            << "1) " << argv0 << " param_file.ini\n"
+            << "Reads parameters from file `param_file.ini` (that contains names\n"
+               "of input sampling histogram and output spline files) and generates the spline\n"
+               "approximating the sampled function.\n"
+            << "2) " << argv0 << "'' <histogram.dat >spline.dat\n"
+            << "Reads histogram from the standard input (here: `histogram.dat`)\n"
+               "and writes the spline to the standard output (here: `spline.dat`)\n"
+               "keeping all parameters at their default values."
             << std::endl;
 
         return strm;
