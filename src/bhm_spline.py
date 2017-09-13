@@ -98,7 +98,7 @@ class BHMSpline:
 
     def plot(self, ref_fn=None):
         """Convenience method: plot the spline and the reference function ref_fn, if supplied"""
-        x=np.linspace(*self.domain(),1000)
+        x=np.linspace(*self.domain(),num=1000)
         y=self(x)
         yerr=self.errorbar(x)
 
