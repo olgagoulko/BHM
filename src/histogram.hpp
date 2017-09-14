@@ -28,7 +28,7 @@ private:
 	double upperBound;
 	bool noUpperBound;
 	std::vector<basisSlot*> basisSlots;
-        unsigned long numberOfSamples;
+        unsigned long numberOfInboundsSamples;
 	
 public:
 
@@ -91,7 +91,9 @@ public:
         double getLowerBound() const { return lowerBound; }
         double getUpperBound() const { return upperBound; } // FIXME: what should it return for "no upper bound"? +INF?
         bool hasUpperBound() const { return !noUpperBound; }
-        unsigned long getNumberOfSamples() const { return numberOfSamples; } // FIXME: does NOT count out-of-bounds samples 
+        unsigned long getNumberOfSamples() const {
+            return numberOfInboundsSamples+getExcessCounter();
+        } 
 	long getExcessCounter() const {return valuesOutsideBounds->getExcessCounter();}
 	double getExcessValues(double norm) const {return valuesOutsideBounds->getExcessValues(norm);}
 	

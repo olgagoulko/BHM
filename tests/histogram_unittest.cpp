@@ -35,7 +35,8 @@ static void test_histogram()
 	myTestHistogram.sample(8, 3.0);
 
         std::cerr << "Number of samples=" << myTestHistogram.getNumberOfSamples() << std::endl;
-        sput_fail_unless(myTestHistogram.getNumberOfSamples()==3, "Number of samples");
+        sput_fail_unless(myTestHistogram.getNumberOfSamples()==5, "Number of samples");
+        sput_fail_unless(myTestHistogram.getExcessCounter()==2, "Number of excess samples");
         
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(-1.).first  == 4.5, "4.5 in excess bin");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(6.).first  == 4.5, "4.5 in excess bin");

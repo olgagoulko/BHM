@@ -40,9 +40,26 @@ static void read_incomplete()
     sput_fail_unless(ok, "Incomplete file exception");
 }
     
+static void read_incomplete2()
+{
+    const std::string input=
+        "5.75 0\n";
+    std::istringstream istrm(input);
+
+    bool ok=false;
+    try {
+        histogramBasis hist(istrm);
+    } catch (histogramBasis::InvalidFileFormatError& err) {
+        ok=true;
+        std::cout << "Exception: " << err.what() << std::endl;
+    }
+    sput_fail_unless(ok, "Incomplete file exception");
+}
+    
 static void read_eof()
 {
     const std::string input=
+        "5.5   1\n"
         "1.25  10  1.  0.\n"
         "2.50  20  1.  0.\n"
         "3.50  30  1.  0.\n"
@@ -78,6 +95,7 @@ static void read_garbage1()
 static void read_garbage2()
 {
     const std::string input=
+        "5.0   1\n"
         "1.25  10  1.  0.\n"
         "2.50  20  1.  0.\n"
         "3.50  30  1.  0.\n"
@@ -98,6 +116,7 @@ static void read_garbage2()
 static void read_malformatted()
 {
     const std::string input=
+        "5.0   1\n"
         "1.25  10  1.  0.\n"
         "2.50  20  1.  0.\n"
         "3.50  30  1.  0.\n"
@@ -118,6 +137,7 @@ static void read_malformatted()
 static void read_overlapped()
 {
     const std::string input=
+        "5.0   1\n"
         "1.25  10  1.  0.\n"
         "2.50  20  1.  0.\n"
         "2.00  30  1.  0.\n" //< overlapping
@@ -138,6 +158,7 @@ static void read_overlapped()
 static void read_bounds()
 {
     const std::string input=
+        " 5.0   1\n"
         "-8.75  10  1.  0.\n"
         "-7.5   20  0.5 0.\n"
         "-6.5   30  1.  0.25\n"
@@ -169,6 +190,7 @@ static void read_bounds()
 static void read()
 {
     const std::string input=
+        "5.0   2\n"
         "1.25  10  1.  0.\n"
         "2.50  20  0.5 0.\n"
         "3.50  30  1.  0.25\n"
@@ -177,6 +199,8 @@ static void read()
         "6.75  5\n"
         "7.00\n";
 
+    const double excess_val=5.0;
+    const long excess_count=2;
     const double slots[6][5]=
     {
         {1.25, 2.50, 10,  1.0,  0.00},
@@ -211,7 +235,9 @@ static void read()
         sput_fail_unless(hist.getSlot(i)->getVariance() == slots[i][4],
                          "m2");
     }
-    sput_fail_unless(hist.getNumberOfSamples()==nsamples, "Histogram number of samples");
+    sput_fail_unless(hist.getNumberOfSamples()==nsamples+excess_count, "Histogram number of samples");
+    sput_fail_unless(hist.getExcessCounter()==excess_count, "Histogram excess count");
+    sput_fail_unless(hist.getExcessValues(1.0)==excess_val, "Histogram excess value");
 }
 
 int main(int argc, char **argv)
@@ -222,6 +248,7 @@ int main(int argc, char **argv)
 
     sput_run_test(read_empty);
     sput_run_test(read_incomplete);
+    sput_run_test(read_incomplete2);
     sput_run_test(read_eof);
     sput_run_test(read_garbage1);
     sput_run_test(read_garbage2);

@@ -60,7 +60,7 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 	}
 
 
-histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfSamples(0)
+histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfInboundsSamples(0)
 	{
 	valuesOutsideBounds = new excessBin();
         // FIXME: BUG: what if theBasisSlots.size()==0 ? I am inserting an assert() for now.
@@ -96,7 +96,7 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 		basisSlots.clear();
 		
 		lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
-                numberOfSamples=toBeAssigned.numberOfSamples;
+                numberOfInboundsSamples=toBeAssigned.numberOfInboundsSamples;
 			
 		for (unsigned int i=0;i<toBeAssigned.getSize();i++)
 			{
@@ -112,7 +112,7 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 	return *this;
 	}
 	
-histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfSamples(toBeCopied.numberOfSamples)
+histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfInboundsSamples(toBeCopied.numberOfInboundsSamples)
 	{
 	valuesOutsideBounds = new excessBin(toBeCopied.getExcessCounter(),toBeCopied.getExcessValues(1.));
 	
@@ -150,18 +150,24 @@ namespace {
     };
 }
 
-histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(new excessBin()),
+histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0),
                                                       lowerBound(0), upperBound(0),
                                                       noUpperBound(false),
-                                                      basisSlots(), numberOfSamples(0)
+                                                      basisSlots(), numberOfInboundsSamples(0)
 {
     try {
         std::string linebuf; // mostly for diagnostics
         hist_line_s histline;
 
-        // first line must contain 4 numbers
-        if (histline.read(istrm, linebuf)!=4) {
+        // first line must contain 2 numbers
+        if (histline.read(istrm, linebuf)!=2) {
             throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
+        }
+        valuesOutsideBounds=new excessBin(histline.nhits, histline.xmin);
+        
+        // second line must contain 4 numbers
+        if (histline.read(istrm, linebuf)!=4) {
+            throw InvalidFileFormatError("Invalid or empty second line:\n>"+linebuf);
         }
         lowerBound=histline.xmin;
         upperBound=histline.xmin;
@@ -184,7 +190,7 @@ histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(new ex
             histline=histline_next;
 
         }
-        if (!(numberOfSamples>0)) throw InvalidFileFormatError("No data points");
+        if (!(numberOfInboundsSamples>0)) throw InvalidFileFormatError("No data points");
     } catch (...) {
         // FIXME: This is a very bad design, but better than leaking memory;
         // FIXME: `valuesOutsideBounds` should not be a raw pointer (or a pointer at all, for that matter!)
@@ -198,7 +204,7 @@ histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(new ex
 void histogramBasis::appendSlot(basisSlot* theSlot)
 	{
 	basisSlots.push_back(theSlot);
-        numberOfSamples += theSlot->getNumberTimesSampled();
+        numberOfInboundsSamples += theSlot->getNumberTimesSampled();
 	if((theSlot -> getBounds()).getLowerBound()<lowerBound) lowerBound=(theSlot -> getBounds()).getLowerBound();
 	if((theSlot -> getBounds()).getIsInfinite()) noUpperBound=true;
 	else if((theSlot -> getBounds()).getUpperBound()>upperBound) upperBound=(theSlot -> getBounds()).getUpperBound();
@@ -253,7 +259,7 @@ void histogramBasis::sample(double variable, double valueToSample)
             {
                 valuesOutsideBounds -> sample(variable, valueToSample);
             } else {
-                ++numberOfSamples;
+                ++numberOfInboundsSamples;
             }
 	}
 
@@ -264,7 +270,7 @@ void histogramBasis::sampleUniform(double variable, double valueToSample)
 	else 
 		{
 		basisSlots[int((variable-lowerBound)/((basisSlots[0] -> getBounds()).slotWidth()))] -> sample(variable,valueToSample);
-                ++numberOfSamples;
+                ++numberOfInboundsSamples;
 		}
 	}
 
@@ -659,6 +665,10 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 
 std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
 {
+    ostrm << hist.getExcessValues(1.0)
+          << " "
+          << hist.getExcessCounter()
+          << "\n";
     for(unsigned int i=0; i<hist.getSize(); ++i) 
     {
         basisSlot* slot = hist.getSlot(i);
