@@ -205,8 +205,6 @@ int Main(int argc, char **argv) {
         bool verbose=par.get(":VERBOSE",default_verbose);
         LOGGER_VERBOSITY(verbose);
         
-	LOGGER << "Generating example histogram";
-	
 	long unsigned int seed=par.get(":RANDOMSEED", 0);
 	if(seed==0) seed=time(NULL);
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
@@ -222,7 +220,9 @@ int Main(int argc, char **argv) {
         }
 
 	const testFunction_base& myTestFunction=*(functions[theFunctionChoice]);
-	
+
+	LOGGER << "Generating example histogram for function #" << theFunctionChoice << ":" << myTestFunction.getExpr();
+       
 	double variable, random;
 	double minVar=myTestFunction.getMinVar();
 	double maxVar=myTestFunction.getMaxVar();
