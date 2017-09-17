@@ -77,7 +77,7 @@ struct QuarticPolynomial : public testFunction_base
                                            max_var(1.0),
                                            interval_size(2.),
                                            test_function_max(0.2),
-                                           py_expr("x**4-0.8*x*x"))
+                                           py_expr("(x*x*x*x-0.8*x*x)/0.171964"))
     {}
 
     virtual double theTestFunctionValue(double x) const { return pow(x,4)-0.8*x*x; }

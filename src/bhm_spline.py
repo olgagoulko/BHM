@@ -93,12 +93,12 @@ class BHMSpline:
             raise ValueError("Argument is outside the spline domain")
         # prepare the boolean list for choosing spline pieces:
         cond=[np.logical_and(x>=r[0],x<=r[1]) for r in zip(self._knots[:-1], self._knots[1:])]
-        return np.piecewise(x, cond, self._errorbar_pieces)
+        return np.sqrt(np.piecewise(x, cond, self._errorbar_pieces))
 
 
     def plot(self, ref_fn=None):
         """Convenience method: plot the spline and the reference function ref_fn, if supplied"""
-        x=np.linspace(*self.domain(),num=1000)
+        x=np.linspace(*(self.domain()+(1000,)))
         y=self(x)
         yerr=self.errorbar(x)
 
@@ -108,6 +108,21 @@ class BHMSpline:
         ax.fill_between(x, y-yerr,y+yerr, alpha=0.3)
         if ref_fn:
             ax.plot(x, ref_fn(x), label="reference")
+        ax.legend()
+        return
+
+    def plot_difference(self, ref_fn=None):
+        """Convenience method: plot the spline and the reference function ref_fn, if supplied"""
+        x=np.linspace(*(self.domain()+(1000,)))
+        y=self(x)
+        yerr=self.errorbar(x)
+
+        ax=plt.axes()
+        if ref_fn:
+            ax.plot(x,y-ref_fn(x),label="spline - reference")
+            ax.fill_between(x, y-ref_fn(x)-yerr,y-ref_fn(x)+yerr, alpha=0.3)
+
+        ax.axhline(y=0, color='black', linestyle='-', linewidth=1)
         ax.legend()
         return
 
