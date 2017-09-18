@@ -1,5 +1,5 @@
 SAMPLESIZE=10000		#total number of points sampled
-FUNCTION=0			#name of test function
+FUNCTION=cubic			#name of test function
 POWERBINS=10               	#generates uniform histogram with 2^POWERBINS bins
 RANDOMSEED=956475		#specify random seed (0 means random initialization)
 OUTPUT="histogram.dat"          #histogram output file (missing means "standard output")

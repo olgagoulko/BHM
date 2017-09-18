@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "histogram.hpp"
 #include "spline.hpp"
 #include "basic.hpp"
@@ -26,12 +28,15 @@ typedef holder<1> max_var;
 typedef holder<2> interval_size;
 typedef holder<3> test_function_max;
 typedef holder<4,std::string> py_expr;
+typedef holder<5,std::string> fn_name;
+
 
 // This allows us to wrap each double (or string) argument into its own type,
 // so that there will be no danger of accidently supplying `min_var` value where `max_var` was expected.
 
 class testFunction_base {
 private:
+        std::string functionName;
 	double minVar;
 	double maxVar;
 	double intervalSize;
@@ -39,8 +44,10 @@ private:
         std::string pyExpr;
 
 public:
-        testFunction_base(min_var a_minVar, max_var a_maxVar, interval_size a_intervalSize,
+        testFunction_base(fn_name a_name,
+                          min_var a_minVar, max_var a_maxVar, interval_size a_intervalSize,
                           test_function_max a_testFunctionMax, py_expr a_expr):
+            functionName(a_name),
             minVar(a_minVar), maxVar(a_maxVar), intervalSize(a_intervalSize),
             testFunctionMax(a_testFunctionMax), pyExpr(a_expr)
         {}
@@ -54,13 +61,17 @@ public:
         virtual std::string getExpr() const {
             return "def fn(x): return " + pyExpr;
         }
-        
+        virtual std::string getName() const { return functionName; }
+
+        virtual bool use_sampling() const { return true; }
+            
         virtual double theTestFunctionValue(double variable) const =0;
 };
 
 struct CubicPolynomial : public testFunction_base
 {
-    CubicPolynomial(): testFunction_base(min_var(1.),
+    CubicPolynomial(): testFunction_base(fn_name("cubic_polynomial"),
+                                         min_var(1.),
                                          max_var(2.8),
                                          interval_size(2.),
                                          test_function_max(0.6168917686383567),
@@ -73,7 +84,8 @@ struct CubicPolynomial : public testFunction_base
 
 struct QuarticPolynomial : public testFunction_base
 {
-    QuarticPolynomial(): testFunction_base(min_var(-1.0),
+    QuarticPolynomial(): testFunction_base(fn_name("quartic_polynomial"),
+                                           min_var(-1.0),
                                            max_var(1.0),
                                            interval_size(2.),
                                            test_function_max(0.2),
@@ -86,7 +98,8 @@ struct QuarticPolynomial : public testFunction_base
 
 struct Exponential : public testFunction_base
 {
-    Exponential(): testFunction_base(min_var(1.),
+    Exponential(): testFunction_base(fn_name("exponential"),
+                                     min_var(1.),
                                      max_var(2.8),
                                      interval_size(2.),
                                      test_function_max(3.1),
@@ -98,7 +111,8 @@ struct Exponential : public testFunction_base
 
 struct Cosine : public testFunction_base
 {
-    Cosine(): testFunction_base(min_var(1.),
+    Cosine(): testFunction_base(fn_name("cosine"),
+                                min_var(1.),
                                 max_var(PI+0.6),
                                 interval_size(PI),
                                 test_function_max(1.1/PI),
@@ -111,7 +125,8 @@ struct Cosine : public testFunction_base
 // special case: don't use rejection sampling for this one
 struct GaussianFromGSL : public testFunction_base
 {
-    GaussianFromGSL() : testFunction_base(min_var(-5),
+    GaussianFromGSL() : testFunction_base(fn_name("triple_gaussian"),
+                                          min_var(-5),
                                           max_var(5.),
                                           interval_size(10.),
                                           test_function_max(0.5),
@@ -123,6 +138,8 @@ struct GaussianFromGSL : public testFunction_base
         throw std::logic_error("GaussianFromGSL::theTestFunctionValue() is not supposed to be called");
     }
 
+    virtual bool use_sampling() const { return false; }
+    
     // this is more complex Python expression, we have to redefine the function from the base
     virtual std::string getExpr() const {
         return
@@ -132,6 +149,73 @@ struct GaussianFromGSL : public testFunction_base
     }
 };
 
+/// Wrapper/holder for the function
+class FunctionContainer {
+  private:
+    // Keeps a name-function pair
+    struct named_fn_ {
+        const testFunction_base* fn;
+        std::string name;
+
+        named_fn_(const testFunction_base* f): fn(f), name(f->getName()) {}
+    };
+    typedef std::vector<named_fn_> fn_vec_type_;
+    fn_vec_type_ fn_vec_;
+    
+  public:
+    /// Fills the table of names and vectors
+    FunctionContainer()
+    {
+        fn_vec_.push_back(named_fn_(new CubicPolynomial()));
+        fn_vec_.push_back(named_fn_(new QuarticPolynomial()));
+        fn_vec_.push_back(named_fn_(new Exponential()));
+        fn_vec_.push_back(named_fn_(new Cosine()));
+        fn_vec_.push_back(named_fn_(new GaussianFromGSL()));
+    }
+
+    /// Destroys the function objects
+    ~FunctionContainer()
+    {
+        for (fn_vec_type_::const_iterator it=fn_vec_.begin();
+             it!=fn_vec_.end(); ++it)
+            delete it->fn;
+    }
+
+    /// Returns a pointer to the held function by partial name, or 0
+    const testFunction_base* operator[](const std::string name) const {
+        int name_sz=name.size();
+        if (name_sz==0) return 0;
+        for (fn_vec_type_::const_iterator it=fn_vec_.begin();
+             it!=fn_vec_.end(); ++it) {
+            if (name_sz <= it->name.size()
+                && it->name.substr(0,name_sz) == name) {
+                return it->fn;
+            }
+        }
+        return 0;
+    }
+
+    /// Prints a list of available names and expressions
+    std::ostream& print(std::ostream& strm) const
+    {
+        for (fn_vec_type_::const_iterator it=fn_vec_.begin();
+             it!=fn_vec_.end(); ++it) {
+            // strm << "#" << it->name << ":\n" << it->fn->getExpr() << "\n\n";
+            strm << it->name << "\n";
+        }
+        return strm;
+    }
+};
+
+inline std::ostream& operator<<(std::ostream& strm, const FunctionContainer& fc)
+{
+    return fc.print(strm);
+}
+
+namespace my {
+    FunctionContainer functionContainer;
+};
+
 static std::ostream& print_help(const char* argv0, std::ostream& strm) {
         strm
             << "Program to generate test data\n"
@@ -139,14 +223,15 @@ static std::ostream& print_help(const char* argv0, std::ostream& strm) {
             << "1) " << argv0 << " param_file.ini\n"
             << "Generates the histogram according to the parameters in `param_file.ini`\n"
             << "OR\n"
-            << "2) " << argv0 << " -python n\n"
-            << "(where n is a function number, 0-4) prints the Python expression corresponding to the generated function."
+            << "2) " << argv0 << " -python name\n"
+            << "(where n is a (possibly incomplete) function name)\n"
+            << " prints the Python expression corresponding to the generated function.\n"
+            << "\nAvailable functions are:\n"
+            << my::functionContainer
             << std::endl;
 
         return strm;
 }
-            
-
 
 int Main(int argc, char **argv) {
 
@@ -155,34 +240,17 @@ int Main(int argc, char **argv) {
             return BAD_ARGS;
         }
 
-        CubicPolynomial cubic_poly;
-        QuarticPolynomial quartic_poly;
-        Exponential exponential;
-        Cosine cosine;
-        GaussianFromGSL gauss;
-        
-        const testFunction_base* functions[]=
-            {
-                &cubic_poly,
-                &quartic_poly,
-                &exponential,
-                &cosine,
-                &gauss // must be the last!
-            };
-        const int nFunctions=sizeof(functions)/sizeof(*functions);
-        const int nGaussFunctionChoice=nFunctions-1; // because gauss is the last
-        
         if (std::string(argv[1])=="-python") {
-            int fn=-1;
-            if (argc!=3 ||
-                sscanf(argv[2],"%d",&fn)!=1 ||
-                fn<0 || fn>=nFunctions) {
-                
-                print_help(argv[0], std::cerr);
-                return BAD_ARGS;
+            if (argc==3) {
+                const testFunction_base* fn=my::functionContainer[argv[2]];
+                if (fn!=0) {
+                    cout << fn->getExpr() << endl;
+                    return OK;
+                }
             }
-            cout << functions[fn]->getExpr() << endl;
-            return OK;
+            print_help(argv[0], cerr);
+            
+            return BAD_ARGS;
         }
         
         iniparser::param par;
@@ -213,15 +281,17 @@ int Main(int argc, char **argv) {
 	long samplingSteps=par.get(":SAMPLESIZE", 1e4);
 	if(samplingSteps<defaultMinNumberTimesSampled) {cerr << "Too few sampling steps" << endl; return BAD_ARGS;}
 
-	int theFunctionChoice=par.get(":FUNCTION",-1);
-	if(theFunctionChoice<0 || theFunctionChoice>=nFunctions) {
-            cerr << "WARNING: No such function, will instead use function 0 (cubic polynomial)" << endl;
-            theFunctionChoice=0;
+	std::string theFunctionChoice=par.get(":FUNCTION","");
+        const testFunction_base* myTestFunction_ptr=my::functionContainer[theFunctionChoice];
+        if (!myTestFunction_ptr) {
+            cerr << "Function named \"" << theFunctionChoice << "\" is not available\n"
+                 << "try \"" << argv[0] << "\" --help"
+                 << endl;
+            return BAD_ARGS;
         }
+	const testFunction_base& myTestFunction=*myTestFunction_ptr;
 
-	const testFunction_base& myTestFunction=*(functions[theFunctionChoice]);
-
-	LOGGER << "Generating example histogram for function #" << theFunctionChoice << ":" << myTestFunction.getExpr();
+	LOGGER << "Generating example histogram for function \"" << myTestFunction.getName() << "\" with the following Python definition:\n" << myTestFunction.getExpr();
        
 	double variable, random;
 	double minVar=myTestFunction.getMinVar();
@@ -239,7 +309,7 @@ int Main(int argc, char **argv) {
 	//rejection method to generate x with appropriate probabilities
 	for(int i=0; i<samplingSteps;i++)
 		{
-		if(theFunctionChoice!=nGaussFunctionChoice)
+		if(myTestFunction.use_sampling())
 			{
 			bool accept=false;
 			while(accept==false)
