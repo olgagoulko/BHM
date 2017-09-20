@@ -16,7 +16,7 @@ include_directories(
     . ..
     )
     
-add_library (samplinglibrary basic.cpp spline.cpp slot.cpp histogram.cpp histogram.hpp slot.hpp spline.hpp basic.hpp)
+add_library (samplinglibrary basic.cpp spline.cpp slot.cpp histogram.cpp)
 add_executable(main main.cpp)
 set_property(TARGET main PROPERTY OUTPUT_NAME "bhm")
 
