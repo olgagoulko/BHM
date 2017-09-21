@@ -17,7 +17,8 @@ include_directories(
     )
     
 add_library (samplinglibrary basic.cpp spline.cpp slot.cpp histogram.cpp)
-add_executable(main main.cpp)
+add_executable(main main.cpp print_spline_grid.cpp)
+
 set_property(TARGET main PROPERTY OUTPUT_NAME "bhm")
 
 add_executable(generator generator.cpp)

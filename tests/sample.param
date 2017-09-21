@@ -12,3 +12,4 @@ FailOnBadFit=true               #do not proceed if the fit is bad
 FailOnZeroFit=true              #do not proceed if the data is consistent with zero
 Data="histogram.dat"            #location of histogram input data
 OutputName="spline.dat"         #location of the output file
+GridOutput="spline_plot.dat"    #location of the spline-on-a-grid output

@@ -72,7 +72,10 @@ public:
 	double splineValue(double variable) const;
 	double splineError(double variable) const;
 	double splineDerivative(double variable, unsigned int derivativeOrder) const;
-	
+
+        double getLowerBound() const { return lowerBound; }
+        double getUpperBound() const { return upperBound; }
+    
         std::ostream& printSplineArrayInfo(std::ostream&) const;
         std::ostream& printSplines(std::ostream&) const;
 	

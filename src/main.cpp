@@ -4,6 +4,7 @@
 #include "slot.hpp"
 
 #include "iniparser_frontend.hpp"
+#include "print_spline_grid.hpp"
 
 using namespace std;
 
@@ -97,6 +98,18 @@ int Main(int argc, char **argv) {
         }
         std::istream& infile = *(infile_name.empty()? &std::cin : &infile_stream);
 
+        
+        const std::string grid_name=par.get(":GridOutput", "");
+        std::ofstream grid_outfile; // we will need it later
+        if (!grid_name.empty()) {
+            grid_outfile.open(grid_name.c_str());
+            if (!grid_outfile) {
+                std::cerr << "Cannot open file '" << grid_name << "'" << std::endl;
+                return BAD_ARGS;
+            }
+        }
+
+        
         histogramBasis binHistogram(infile);
         
         if (!infile_name.empty()) infile_stream.close();
@@ -122,6 +135,7 @@ int Main(int argc, char **argv) {
                << "PrintFitInfo = " << print_fit << " # print the fit information\n"
                << "Data = \"" << infile_name << "\" # Input histogram\n"
                << "OutputName = \"" << outfile_name << "\" # Output file to print results to\n"
+               << "GridOutput = \"" << grid_name << "\" # Output file to print spline values on a grid\n"
                << "\nInput histogram:"
                << "\nNumber of bins: " << binHistogram.getSize()
                << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
@@ -143,6 +157,9 @@ int Main(int argc, char **argv) {
         
 	testBHMfit.printSplines(outfile);
 
+        // Should we dump the grid?
+        if (grid_outfile) print_spline_grid(grid_outfile, testBHMfit);
+        
 	return OK;
 	
 }

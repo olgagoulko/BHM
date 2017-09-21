@@ -7,6 +7,8 @@
 
 #include "iniparser_frontend.hpp"
 
+#include "grid.hpp"
+
 using namespace std;
 
 //definitions of several test functions with corresponding domains for sampling with rejection method
@@ -66,6 +68,8 @@ public:
         virtual bool use_sampling() const { return true; }
             
         virtual double theTestFunctionValue(double variable) const =0;
+
+       double operator()(double variable) const { return theTestFunctionValue(variable); }
 };
 
 struct CubicPolynomial : public testFunction_base
@@ -296,7 +300,25 @@ int Main(int argc, char **argv) {
 	double variable, random;
 	double minVar=myTestFunction.getMinVar();
 	double maxVar=myTestFunction.getMaxVar();
-	double intervalSize=myTestFunction.getIntervalSize();
+
+        const std::string grid_name=par.get(":GridOutput","");
+        if (!grid_name.empty()) {
+            std::ofstream grid_out(grid_name.c_str());
+            if (!grid_out) {
+                std::cerr << "Cannot open file '" << grid_name << "'" << std::endl;
+                return BAD_ARGS;
+            }
+            Grid<testFunction_base> grid;
+            grid.set_xmin(minVar)
+                .set_xmax(maxVar)
+                .set_rows(1024)
+                .add_column(&myTestFunction);
+
+            grid_out << "# Grid of function: " << myTestFunction.getName() << "\n"
+                     << grid;
+        }
+            
+        double intervalSize=myTestFunction.getIntervalSize();
 	double testFunctionMax=myTestFunction.getTestFunctionMax();
 	
 	unsigned int power=par.get(":POWERBINS",10);
@@ -316,7 +338,7 @@ int Main(int argc, char **argv) {
 				{
 				variable=gsl_rng_uniform(RNG)*intervalSize+minVar;
 				random=gsl_rng_uniform(RNG)*testFunctionMax;
-				if(random<abs(myTestFunction.theTestFunctionValue(variable))) accept=true;
+				if(random<abs(myTestFunction(variable))) accept=true;
 				}
 			}
 		else // special case: we do not use rejection sampling here
@@ -326,7 +348,7 @@ int Main(int argc, char **argv) {
 			else {variable = -2+ gsl_ran_gaussian (RNG, 1.0);}
 			}
 		
-		binHistogram.sampleUniform(variable,whatsign(myTestFunction.theTestFunctionValue(variable)));
+		binHistogram.sampleUniform(variable,whatsign(myTestFunction(variable)));
 		}
 
         output << setprecision(12) << binHistogram;
