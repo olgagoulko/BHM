@@ -76,7 +76,7 @@ int Main(int argc, char **argv) {
 
         LOGGER << "----------------- Example BHM code ----------------";
         
-        int splinePolynomialOrder=par.get(":SplineOrder", 4);
+        int splinePolynomialOrder=par.get(":SplineOrder", 3);
         if (splinePolynomialOrder<0) {
             std::cerr << "Polynomial order cannot be less than 0" << std::endl;
             return BAD_ARGS;
@@ -95,6 +95,8 @@ int Main(int argc, char **argv) {
 	threshold.steps=par.get(":THRESHOLDSTEPS", 0);	//if steps==0 only use min threshold value, ignore max
 	if(threshold.max<=threshold.min) threshold.steps=0;
 	if(threshold.steps<0) threshold.steps=0;
+	
+	double usableBinFraction=par.get(":UsableBinFraction",0.25);
 
         bool enableJumpSuppression=par.get(":JumpSuppression", false);
         double jumpSuppression=enableJumpSuppression? 1.0 : 0.0;
@@ -119,6 +121,7 @@ int Main(int argc, char **argv) {
 
         
         const std::string grid_name=par.get(":GridOutput", "");
+	unsigned int grid_points=par.get(":GridPoints", 1024);
         std::ofstream grid_outfile; // we will need it later
         if (!grid_name.empty()) {
             grid_outfile.open(grid_name.c_str());
@@ -126,6 +129,10 @@ int Main(int argc, char **argv) {
                 std::cerr << "Cannot open file '" << grid_name << "'" << std::endl;
                 return BAD_ARGS;
             }
+            if(grid_points<1) {
+		    std::cerr << "Too few grid points '" << grid_points << "'" << std::endl;
+		    return BAD_ARGS;
+	    }
         }
 
         
@@ -147,6 +154,7 @@ int Main(int argc, char **argv) {
                << "Threshold = " << threshold.min << " # minimal goodness-of-fit threshold\n"
                << "ThresholdMax = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
                << "ThresholdSteps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
+	       << "UsableBinFraction = " << usableBinFraction << " # proportion of bins that must be usable for a level to be considered\n"
                << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
                << "Verbose = " << verbose << " # verbose output\n"
                << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"
@@ -163,7 +171,7 @@ int Main(int argc, char **argv) {
 
         LOGGER << "BHM fit:";
         
-	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, binHistogram.getNumberOfSamples(),
+	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, usableBinFraction, binHistogram.getNumberOfSamples(),
                                                      threshold, jumpSuppression, fail_if_zero);
 
         if (!testBHMfit.getAcceptance()) {
@@ -177,7 +185,7 @@ int Main(int argc, char **argv) {
 	testBHMfit.printSplines(outfile);
 
         // Should we dump the grid?
-        if (grid_outfile) print_spline_grid(grid_outfile, testBHMfit);
+        if (grid_outfile) print_spline_grid(grid_outfile, testBHMfit, grid_points);
         
 	return OK;
 	

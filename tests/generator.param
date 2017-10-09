@@ -1,6 +1,7 @@
 SAMPLESIZE=10000		#total number of points sampled
-FUNCTION=cubic			#name of test function
+FUNCTION=cubic_polynomial	#name of test function
 POWERBINS=10               	#generates uniform histogram with 2^POWERBINS bins
 RANDOMSEED=956475		#specify random seed (0 means random initialization)
 OUTPUT="histogram.dat"          #histogram output file (missing means "standard output")
 GridOutput="function.dat"       #output the function computed on a grid into this file (if provided)
+GridPoints=1024			#number of grid points for output

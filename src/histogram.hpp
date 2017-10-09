@@ -127,8 +127,8 @@ public:
 	histogramBasis normalizedHistogram(double norm);
 	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
-	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm);
-        splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero);
+	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm, double usableBinFraction);
+        splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, double usableBinFraction, long int norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero);
 };
 std::ostream& operator<<(std::ostream& , const histogramBasis&);
 

@@ -153,7 +153,7 @@ histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfInboun
 namespace {
     /// convenience class to hold histogram line
     struct hist_line_s {
-        int nhits;
+        unsigned long nhits;
         double xmin, avg, m2;
         
         hist_line_s(): nhits(), xmin(), avg(1.0), m2(0.0) {}
@@ -162,7 +162,7 @@ namespace {
         int read(std::istream& istrm, std::string& linebuf)
         {
             if (!std::getline(istrm, linebuf)) return -1;
-            int count=std::sscanf(linebuf.c_str(), "%lf %d %lf %lf",
+            int count=std::sscanf(linebuf.c_str(), "%lf %lu %lf %lf",
                                   &xmin, &nhits, &avg, &m2);
             return count;
         }
@@ -445,7 +445,7 @@ bool histogramBasis::addAnotherHistogram(histogramBasis anotherHistogram)
 	}
 
 
-vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
+vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, double usableBinFraction)
 	{
 	unsigned int numberElementaryBins = basisSlots.size();
 	unsigned int maxLevel=rounding(log(double(numberElementaryBins))/log(2));
@@ -479,8 +479,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 			if(analysisBins[j][i] -> enoughSampled()) analysisBins[j][i] -> scale(norm);
 			else analysisBins[j].erase(analysisBins[j].begin()+i);
 			}
-                  // FIXME: replace /4 with user-defined coefficient? can be set to 0 by user
-		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize/4) || (analysisBins[j].size()==0))
+		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize*usableBinFraction) || (analysisBins[j].size()==0))
 			{
 			breakPoint=j; break;
 			}
@@ -492,7 +491,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero)
+splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, double usableBinFraction, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero)
 	{
 	if(splineOrder<1) {
             // rationale: it's caller's job to check parameters and issue warning to an appropriate log
@@ -511,7 +510,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	
 	//make bin hierarchy; position in outer vector denotes bin level: 0 is largest bin, 1 are second level bins etc
 	//intervals labeled in the same way: as a sequence 0 or 11 or 221 or 2331 etc
-	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm); //the bins on each given level don't have to be in order, only analysisBins do
+	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm, usableBinFraction); //the bins on each given level don't have to be in order, only analysisBins do
 
 	if(analysisBins.size()<minLevel) {
             // rationale: hard to be checked by caller, but no meaningful spline can be created

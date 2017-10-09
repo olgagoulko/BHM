@@ -157,9 +157,10 @@ struct GaussianFromGSL : public testFunction_base
     {}
 
     virtual double theTestFunctionValue(double x) const
-    {
-        throw std::logic_error("GaussianFromGSL::theTestFunctionValue() is not supposed to be called");
-    }
+	{
+	return 0.2*exp(-x*x/2./0.2/0.2)/sqrt(2*PI)/0.2+0.4*exp(-(x-2)*(x-2)/2.)/sqrt(2*PI)+0.4*exp(-(x+2)*(x+2)/2.)/sqrt(2*PI);
+	}
+
 
     virtual bool use_sampling() const { return false; }
     
@@ -167,7 +168,7 @@ struct GaussianFromGSL : public testFunction_base
     virtual std::string getExpr() const {
         return
             "def fn(x):\n"
-            "    def gauss(m,s): return np.exp(-(x-m)**2/(2*s))/np.sqrt(2*np.pi*s)\n"
+            "    def gauss(m,s): return np.exp(-(x-m)**2/(2*s*s))/np.sqrt(2*np.pi)/s\n"
             "    return 0.2*gauss(0.,0.2) + 0.4*(gauss(2.,1.)+gauss(-2.,1))\n";
     }
 };
@@ -206,7 +207,7 @@ class FunctionContainer {
 
     /// Returns a pointer to the held function by partial name, or 0
     const testFunction_base* operator[](const std::string name) const {
-        int name_sz=name.size();
+        unsigned int name_sz=name.size();
         if (name_sz==0) return 0;
         for (fn_vec_type_::const_iterator it=fn_vec_.begin();
              it!=fn_vec_.end(); ++it) {
@@ -321,16 +322,21 @@ int Main(int argc, char **argv) {
 	double maxVar=myTestFunction.getMaxVar();
 
         const std::string grid_name=par.get(":GridOutput","");
+	int grid_points=par.get(":GridPoints", 1024);
         if (!grid_name.empty()) {
             std::ofstream grid_out(grid_name.c_str());
             if (!grid_out) {
                 std::cerr << "Cannot open file '" << grid_name << "'" << std::endl;
                 return BAD_ARGS;
             }
+            if(grid_points<1) {
+		    std::cerr << "Too few grid points '" << grid_points << "'" << std::endl;
+		    return BAD_ARGS;
+	    }
             Grid<testFunction_base> grid;
             grid.set_xmin(minVar)
                 .set_xmax(maxVar)
-                .set_rows(1024)
+		.set_rows(grid_points)
                 .add_column(&myTestFunction);
 
             grid_out << "# Grid of function: " << myTestFunction.getName() << "\n"

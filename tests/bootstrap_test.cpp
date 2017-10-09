@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 		
 		if(round==bootstrapSamples)
 			{
-			theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+			theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, false);
 			acceptance=theBHMfit.getAcceptance();
 			//if(theBHMfit.numberKnots()>10) acceptance=false;
 			
