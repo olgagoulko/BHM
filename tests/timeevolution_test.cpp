@@ -94,10 +94,19 @@ int main(int argc, char **argv) {
 		histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingStepsCounter);
 			
 		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=5.5; threshold.steps=7;
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 0, true, false);
+		BHMparameters theParameters;
+		theParameters.dataPointsMin=100;
+		theParameters.splineOrder=4;
+		theParameters.minLevel=2;
+		theParameters.threshold=threshold;
+		theParameters.usableBinFraction=0.25;
+		theParameters.jumpSuppression=0;
+		
+		splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingStepsCounter, false);
 		bool acceptance=testBHMfit.getAcceptance();
 			
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 1, true, false);
+		theParameters.jumpSuppression=1.0;
+		splineArray testJumpSuppression = binHistogram.BHMfit(theParameters, samplingStepsCounter, false);
 			
 		if( acceptance ) numberOfGoodFits++;
 			

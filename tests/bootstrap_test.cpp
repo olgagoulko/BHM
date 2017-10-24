@@ -129,13 +129,21 @@ int main(int argc, char **argv) {
 		histogramBasis scaledBasisHistogram = combinedBasisHistogram.scaledHistogram(samplingSteps);
 		
 		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=6; threshold.steps=4;
+		BHMparameters theParameters;
+		theParameters.dataPointsMin=100;
+		theParameters.splineOrder=4;
+		theParameters.minLevel=2;
+		theParameters.threshold=threshold;
+		theParameters.usableBinFraction=0.25;
+		theParameters.jumpSuppression=0;
+		
 		bool acceptance;
 		vector< double > dummy;
 		splineArray theBHMfit;
 		
 		if(round==bootstrapSamples)
 			{
-			theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, false);
+			theBHMfit = combinedHistogram.BHMfit(theParameters, samplingSteps, false);
 			acceptance=theBHMfit.getAcceptance();
 			//if(theBHMfit.numberKnots()>10) acceptance=false;
 			
@@ -150,8 +158,8 @@ int main(int argc, char **argv) {
 			}
 		else
 			{
-			vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-			theBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+			vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+			theBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, theParameters.splineOrder, theParameters.jumpSuppression, dummy, dummy, threshold.min);
 			acceptance=true;//theBHMfit.checkOverallAcceptance(threshold);
 			if( acceptance ) numberOfGoodFits++;
 			

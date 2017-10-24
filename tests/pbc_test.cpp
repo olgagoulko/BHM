@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 			}
 
 		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy, threshold.min);
 			
 		for(unsigned int j=0;j<intervalBounds.size();j++)
 			{

@@ -70,8 +70,15 @@ int main(int argc, char **argv) {
 			
 	fitAcceptanceThreshold threshold;
 	threshold.min=2; threshold.max=4; threshold.steps=3;
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
 
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, 0.25, samplingSteps, threshold, 0, true);
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
 	cout << endl;
 	testBHMfit.printSplineArrayInfo(cout);
 	testBHMfit.printSplines(cout);

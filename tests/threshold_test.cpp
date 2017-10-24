@@ -71,11 +71,20 @@ int main(int argc, char **argv) {
 			
 	fitAcceptanceThreshold threshold;
 	threshold.min=0; threshold.max=0; threshold.steps=0;
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
 	for(int round=0;round<30;round++)
 		{
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+		splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
 		cout << "BHM fit: " << testBHMfit.getAcceptance() << '\t' << threshold.min << '\t' << testBHMfit.numberKnots() << endl;
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1, true, false);
+		theParameters.jumpSuppression=1.0;
+		splineArray testJumpSuppression = binHistogram.BHMfit(theParameters, samplingSteps, false);
 		cout << "Jump suppression: " << testJumpSuppression.getAcceptance() << '\t' << threshold.min << '\t' << testJumpSuppression.numberKnots() << endl;
 		
 		for(int i=0; i<numSteps;i++) 
@@ -87,7 +96,7 @@ int main(int argc, char **argv) {
 			}
 		output << endl; output << endl;
 				
-		threshold.min+=0.5;
+		theParameters.threshold.min+=0.5;
 		}
 		
 	

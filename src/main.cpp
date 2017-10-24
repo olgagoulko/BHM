@@ -74,8 +74,14 @@ int Main(int argc, char **argv) {
 
         LOGGER_VERBOSITY(verbose);
 
-        LOGGER << "----------------- Example BHM code ----------------";
+        LOGGER << "--------------------------- BHM fit -----------------------------";
         
+	int dataPointsMin=par.get(":DataPointsMin", 100);
+	if (dataPointsMin<10) {
+		std::cerr << "Warning: DataPointsMin too small, resetting it to 10";
+		dataPointsMin=10;
+	}
+	
         int splinePolynomialOrder=par.get(":SplineOrder", 3);
         if (splinePolynomialOrder<0) {
             std::cerr << "Polynomial order cannot be less than 0" << std::endl;
@@ -84,6 +90,10 @@ int Main(int argc, char **argv) {
         unsigned int splineOrder=splinePolynomialOrder+1; // number of polynomial coefficients
         
 	unsigned int minLevel=par.get(":MinLevel", 2);
+	if(splineOrder >= pow(2,minLevel+1)-1) {
+		std::cerr << "Warning: Spline order too high for given MINLEVEL, resetting to defaults";
+		minLevel=2; splineOrder=4;
+		}
         if (minLevel<2) {
             std::cerr << "Warning: MINLEVEL must be at least 2, resetting it to 2";
             minLevel=2;
@@ -97,6 +107,10 @@ int Main(int argc, char **argv) {
 	if(threshold.steps<0) threshold.steps=0;
 	
 	double usableBinFraction=par.get(":UsableBinFraction",0.25);
+	if (usableBinFraction>1) {
+		std::cerr << "Warning: UsableBinFraction cannot be larger than 1, resetting it to default value 0.25";
+		usableBinFraction=0.25;
+	}
 
         bool enableJumpSuppression=par.get(":JumpSuppression", false);
         double jumpSuppression=enableJumpSuppression? 1.0 : 0.0;
@@ -122,7 +136,7 @@ int Main(int argc, char **argv) {
         
         const std::string grid_name=par.get(":GridOutput", "");
 	unsigned int grid_points=par.get(":GridPoints", 1024);
-        std::ofstream grid_outfile; // we will need it later
+        std::ofstream grid_outfile;
         if (!grid_name.empty()) {
             grid_outfile.open(grid_name.c_str());
             if (!grid_outfile) {
@@ -146,33 +160,57 @@ int Main(int argc, char **argv) {
                       << std::endl;
             return BAD_DATA;
         }
+        else if (binHistogram.getSize()<4) { //this is still very few bins
+		std::cerr << "Number of bins (" << binHistogram.getSize() << ") is too small" << std::endl;
+		return BAD_DATA;
+	}
+        else if (minLevel+2>ilog2(binHistogram.getSize())) {
+		std::cerr << "Warning: MINLEVEL too large for histogram size, resetting it to 2";
+		minLevel=2;
+	}
+	
+	if(binHistogram.getNumberOfSamples()<dataPointsMin) { //this is still very few data points
+		std::cerr << "Not enough sampled data points (" << binHistogram.getNumberOfSamples() << ") in histogram" << std::endl;
+		return BAD_DATA;
+	}
         
         LOGGER << std::boolalpha
                << "Input parameters:\n"
-               << "SplineOrder = " << splineOrder-1 << " # spline order\n"
-               << "MinLevel = " << minLevel << " # minimual number of levels per interval\n"
-               << "Threshold = " << threshold.min << " # minimal goodness-of-fit threshold\n"
-               << "ThresholdMax = " << threshold.max << " # maximal goodness-of-fit threshold (if applicable)\n"
-               << "ThresholdSteps = " << threshold.steps << " # steps for goodness-of-fit threshold increase\n"
-	       << "UsableBinFraction = " << usableBinFraction << " # proportion of bins that must be usable for a level to be considered\n"
-               << "JumpSuppression = " << (jumpSuppression>0) << " # suppression of highest order derivative\n"
-               << "Verbose = " << verbose << " # verbose output\n"
-               << "FailOnZeroFit = " << fail_if_zero << "# do not proceed if the fit is consistent with 0\n"
-               << "FailOnBadFit = " << fail_if_bad << " # do not proceed if the fit is bad\n"
-               << "PrintFitInfo = " << print_fit << " # print the fit information\n"
-               << "Data = \"" << infile_name << "\" # Input histogram\n"
-               << "OutputName = \"" << outfile_name << "\" # Output file to print results to\n"
-               << "GridOutput = \"" << grid_name << "\" # Output file to print spline values on a grid\n"
+	       << left << setw(20) << "DataPointsMin = " << left << setw(20) << dataPointsMin 	<< " # minimal number of data points per bin\n"
+               << setw(20) << "SplineOrder = " 		<< left << setw(20) << splineOrder-1 	<< " # spline order\n"
+               << setw(20) << "MinLevel = " 		<< left << setw(20) << minLevel 	<< " # minimual number of levels per interval\n"
+               << setw(20) << "Threshold = " 		<< left << setw(20) << threshold.min 	<< " # minimal goodness-of-fit threshold\n"
+               << setw(20) << "ThresholdMax = "		<< left << setw(20) << threshold.max 	<< " # maximal goodness-of-fit threshold (if applicable)\n"
+               << setw(20) << "ThresholdSteps = " 	<< left << setw(20) << threshold.steps << " # number of steps for goodness-of-fit threshold increase\n"
+	       << setw(20) << "UsableBinFraction = " 	<< left << setw(20) << usableBinFraction << " # minimal proportion of good bins for a level to be considered\n"
+               << setw(20) << "JumpSuppression = " 	<< left << setw(20) << (jumpSuppression>0) << " # suppression of highest order derivative\n"
+               << setw(20) << "Verbose = " 		<< left << setw(20) << verbose 		<< " # verbose output\n"
+               << setw(20) << "FailOnZeroFit = " 	<< left << setw(20) << fail_if_zero 	<< " # do not proceed if the fit is consistent with 0\n"
+               << setw(20) << "FailOnBadFit = " 	<< left << setw(20) << fail_if_bad 	<< " # do not proceed if the fit is bad\n"
+               << setw(20) << "PrintFitInfo = " 	<< left << setw(20) << print_fit 	<< " # print the fit information\n"
+               << setw(20) << "Data = " 		<< left << setw(20) << infile_name 	<< " # Input histogram file\n"
+               << setw(20) << "OutputName = " 		<< left << setw(20) << outfile_name 	<< " # Output file to print results to\n"
+               << setw(20) << "GridOutput = " 		<< left << setw(20) << grid_name 	<< " # Output file to print spline values on a grid\n"
+	       << setw(20) << "GridPoints = " 		<< left << setw(20) << grid_points 	<< " # number of grid points for spline output\n"
                << "\nInput histogram:"
-               << "\nNumber of bins: " << binHistogram.getSize()
-               << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
-               << "\nLower bound: " << binHistogram.getLowerBound()
-               << "\nUpper bound: " << binHistogram.getUpperBound();
+               << setw(20) << "\nNumber of bins: " << binHistogram.getSize()
+               << setw(20) << "\nNumber of samples: " << binHistogram.getNumberOfSamples()
+	       << setw(20) << "\nNormalization: " << binHistogram.getNorm()
+               << setw(20) << "\nLower bound: " << binHistogram.getLowerBound()
+               << setw(20) << "\nUpper bound: " << binHistogram.getUpperBound() << "\n";
 
         LOGGER << "BHM fit:";
+	
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=dataPointsMin;
+	theParameters.splineOrder=splineOrder;
+	theParameters.minLevel=minLevel;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=usableBinFraction;
+	theParameters.jumpSuppression=jumpSuppression;
         
-	splineArray testBHMfit = binHistogram.BHMfit(splineOrder, minLevel, usableBinFraction, binHistogram.getNumberOfSamples(),
-                                                     threshold, jumpSuppression, fail_if_zero);
+	histogramBasis normalizedBinHistogram = binHistogram.normalizedHistogram(binHistogram.getNorm());
+	splineArray testBHMfit = normalizedBinHistogram.BHMfit(theParameters, binHistogram.getNumberOfSamples(), fail_if_zero);
 
         if (!testBHMfit.getAcceptance()) {
             LOGGER << "WARNING: no acceptable fit found";

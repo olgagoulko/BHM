@@ -104,7 +104,15 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
 	fitAcceptanceThreshold threshold; threshold.min=2;
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
 	testBHMfit.printSplineArrayInfo(cout); cout << endl;
 	testBHMfit.printSplines(cout);
 	
@@ -129,8 +137,8 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy, threshold.min);
 			
 		for(unsigned int j=0;j<intervalBounds.size();j++)
 			{

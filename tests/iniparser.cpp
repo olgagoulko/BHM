@@ -86,7 +86,7 @@ static void test_get_double_data()
     iniparser::param p("sample.param");
     double val=p.get(":threshold", 14.25);
     std::cout << "value=" << val << std::endl;
-    sput_fail_unless(val==2.1, "Getting double param");
+    sput_fail_unless(val==2.0, "Getting double param");
 }
 
 static void test_get_bool_data()

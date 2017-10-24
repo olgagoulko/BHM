@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 	
 	cout << "----------------- Test distribution with two Gaussian peaks ----------------" << endl;
 	
-	long unsigned int seed=345902845;
+	long unsigned int seed=956475;
 	gsl_rng * RNG = gsl_rng_alloc (gsl_rng_mt19937);
 	gsl_rng_set (RNG, seed);
 	
@@ -39,9 +39,9 @@ int main(int argc, char **argv) {
 
 	double minVar=-5; double maxVar=5.0;
 	double slotWidth=(maxVar-minVar)/pow(2.,8);
-	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth);
+	//vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth);
 	
-	/*vector<basisSlot*> histogramVector;
+	/**/vector<basisSlot*> histogramVector;
 	double theMin=0; double width=5./pow(2.,11);
 	for(int i=0;i<pow(2,7);i++)
 		{
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 		histogramVector.insert(histogramVector.begin(), new taylorSlot(currentBounds, 0));
 	theMin-=width; width*=1.03376593998699205887137064727248890649;
 		}
-	cout << histogramVector.size() << endl;*/
+	cout << histogramVector.size() << endl;/**/
 	
 	histogramBasis binHistogram(histogramVector);
 	
@@ -93,7 +93,15 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 
 	fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=2; threshold.steps=0;
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
 	testBHMfit.printSplineArrayInfo(cout); cout << endl;
 	testBHMfit.printSplines(cout);
 	
@@ -118,8 +126,8 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy, threshold.min);
 			
 		for(unsigned int j=0;j<intervalBounds.size();j++)
 			{

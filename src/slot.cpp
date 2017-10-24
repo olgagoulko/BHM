@@ -113,7 +113,7 @@ std::ostream& slotBounds::printBoundsInfo(std::ostream& strm, verbosity_level_ty
 basisSlot::basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance)
     : bounds(theBounds), totalNumOfBasisFn(0),
       integral(theIntegral), variance(theVariance), numberTimesSampled(nhits),
-      enoughData(false) // FIXME: is this correct?
+      enoughData(false) // this needs to be evaluated separately depending on parameter choice
 	{	}
 
 basisSlot::basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn)

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 #include <cstdio>
 #include <cassert>
+#include <complex>
 
 using namespace std; 
 
@@ -95,6 +96,7 @@ histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfInbou
 		if(currentBounds.getIsInfinite()) noUpperBound=true;
 		else if(currentBounds.getUpperBound()>upperBound) upperBound=currentBounds.getUpperBound();
 		}
+	normalizationFactor=0;	//corresponds to omitting normalization, or norm=1 in this context
 	}
 
 histogramBasis::~histogramBasis()
@@ -116,6 +118,7 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 		
 		lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
                 numberOfInboundsSamples=toBeAssigned.numberOfInboundsSamples;
+		normalizationFactor=toBeAssigned.normalizationFactor;
 			
 		for (unsigned int i=0;i<toBeAssigned.getSize();i++)
 			{
@@ -136,6 +139,8 @@ histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfInboun
 	valuesOutsideBounds = new excessBin(toBeCopied.getExcessCounter(),toBeCopied.getExcessValues(1.));
 	
 	lowerBound=(toBeCopied.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+	
+	normalizationFactor=toBeCopied.normalizationFactor;
 	
 	for (unsigned int i=0;i<toBeCopied.getSize();i++)
 		{
@@ -172,7 +177,7 @@ namespace {
 histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0),
                                                       lowerBound(0), upperBound(0),
                                                       noUpperBound(false),
-                                                      basisSlots(), numberOfInboundsSamples(0)
+                                                      basisSlots(), numberOfInboundsSamples(0), normalizationFactor(0)
 {
     try {
         std::string linebuf; // mostly for diagnostics
@@ -182,10 +187,12 @@ histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0),
         if (histline.read(istrm, linebuf)!=2) {
             throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
         }
-        valuesOutsideBounds=new excessBin(histline.nhits, histline.xmin);
+        valuesOutsideBounds=new excessBin(histline.nhits, histline.xmin);	//histline.xmin is a dummy
+	normalizationFactor=histline.xmin;
         
-        // second line must contain 4 numbers
-        if (histline.read(istrm, linebuf)!=4) {
+        // second line must contain 4 or 2 numbers
+	int ndata2=histline.read(istrm, linebuf);
+	if ( (ndata2!=4) && (ndata2!=2) ) {
             throw InvalidFileFormatError("Invalid or empty second line:\n>"+linebuf);
         }
         lowerBound=histline.xmin;
@@ -412,7 +419,7 @@ histogramBasis histogramBasis::scaledHistogram(long norm)
 		scaledSlots.push_back(currentSlot);
 		}
 	
-	histogramBasis result(scaledSlots);
+	histogramBasis result(scaledSlots); //FIXME: do these histograms have the right parameters otherwise?
 	return result;
 	}
 
@@ -422,11 +429,11 @@ histogramBasis histogramBasis::normalizedHistogram(double norm)
 	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
 		basisSlot* currentSlot = basisSlots[i] -> Clone();
-		currentSlot -> normalize(norm);
+		if( (norm>0) && (norm!=1) ) currentSlot -> normalize(norm);
 		scaledSlots.push_back(currentSlot);
 		}
 	
-	histogramBasis result(scaledSlots);
+	histogramBasis result(scaledSlots);//FIXME: do these histograms have the right parameters otherwise?
 	return result;
 	}
 
@@ -445,13 +452,17 @@ bool histogramBasis::addAnotherHistogram(histogramBasis anotherHistogram)
 	}
 
 
-vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, double usableBinFraction)
+vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, int dataPointsMin, double usableBinFraction)
 	{
 	unsigned int numberElementaryBins = basisSlots.size();
 	unsigned int maxLevel=rounding(log(double(numberElementaryBins))/log(2));
 	vector< vector<basisSlot*> > analysisBins;
 	vector<basisSlot*> currentLevelBins;
-	for(unsigned int i=0;i<numberElementaryBins;i++) {basisSlots[i] -> updateEnoughSampled(); currentLevelBins.push_back(basisSlots[i] -> Clone());}
+	for(unsigned int i=0;i<numberElementaryBins;i++)
+		{
+		basisSlots[i] -> updateEnoughSampled(dataPointsMin);
+		currentLevelBins.push_back(basisSlots[i] -> Clone());
+		}
 	for(unsigned int j=0;j<=maxLevel;j++)
 		{
 		analysisBins.insert(analysisBins.begin(),currentLevelBins);
@@ -464,7 +475,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, double us
 			basisSlot * combined = new basisSlot(theBounds);
 			combined -> combineWithSlot(analysisBins[0][i]);
 			combined -> combineWithSlot(analysisBins[0][i+1]);
-			combined -> updateEnoughSampled();
+			combined -> updateEnoughSampled(dataPointsMin);
 			currentLevelBins.push_back(combined);
 			}
 		}
@@ -491,8 +502,14 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, double us
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, double usableBinFraction, long norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero)
+splineArray histogramBasis::BHMfit(BHMparameters parameters, long norm, bool fail_if_zero)
 	{
+	unsigned int splineOrder=parameters.splineOrder;
+	unsigned int minLevel=parameters.minLevel;
+	fitAcceptanceThreshold theThreshold=parameters.threshold;
+	double usableBinFraction=parameters.usableBinFraction;
+	double jumpSuppression=parameters.jumpSuppression;
+		
 	if(splineOrder<1) {
             // rationale: it's caller's job to check parameters and issue warning to an appropriate log
             // here we simply bail out if the input is wrong.
@@ -510,7 +527,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 	
 	//make bin hierarchy; position in outer vector denotes bin level: 0 is largest bin, 1 are second level bins etc
 	//intervals labeled in the same way: as a sequence 0 or 11 or 221 or 2331 etc
-	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm, usableBinFraction); //the bins on each given level don't have to be in order, only analysisBins do
+	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm, parameters.dataPointsMin, usableBinFraction); //the bins on each given level don't have to be in order, only analysisBins do
 
 	if(analysisBins.size()<minLevel) {
             // rationale: hard to be checked by caller, but no meaningful spline can be created
@@ -546,7 +563,7 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 
 		while(currentLevel<analysisBins.size()-1)
 			{
-			splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+			splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 
 			if(result.checkOverallAcceptance(currentFitAcceptanceThreshold)!=true) checkIntervals=true;
 			else checkIntervals=false;
@@ -616,17 +633,17 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
                     LOGGER << "No knots for jump suppression";
                 } 
 	
-	/**/if(jumpSuppression>0)
+	if(jumpSuppression>0)
 		{
 		LOGGER << "\nIterative consistent constraints procedure\n";
 		aMaxVector.resize(0);
-		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 		for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((geta3.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
 		}
 	
-	splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
+	splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 	
-	/**/if(jumpSuppression>0)
+	if(jumpSuppression>0)
 		{
 		for(int repeat=0;repeat<1;repeat++)
 			{
@@ -656,20 +673,19 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 					else jumpSuppression*=2;
 					}
 				
-				result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
+				result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 				}
-			/**/aMaxVector.resize(0); chisqArray.resize(0);
+			aMaxVector.resize(0); chisqArray.resize(0);
 			for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((result.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
 			for(unsigned int i=0;i<intervalBounds.size();i++)
 				{
 				double chisqArrayElement=1+currentFitAcceptanceThreshold*sqrt(2.);
 				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
 				chisqArray.push_back(chisqArrayElement);
-				}/**/
+				}
 			jumpSuppression=1;
 			}
 		}
-		/**/
 	
 	vector< vector<basisSlot*> >::iterator i;
 	vector<basisSlot*>::iterator j;
@@ -683,10 +699,8 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 
 std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
 {
-    ostrm << hist.getExcessValues(1.0)
-          << " "
-          << hist.getExcessCounter()
-          << "\n";
+    ostrm << hist.getExcessCounter() << "\n";
+    
     for(unsigned int i=0; i<hist.getSize(); ++i) 
     {
         basisSlot* slot = hist.getSlot(i);
@@ -705,10 +719,10 @@ std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
 
 
 
-splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, vector<double> aMaxVector, vector<double> chisqArray)
+splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, vector<double> aMaxVector, vector<double> chisqArray, double currentFitAcceptanceThreshold)
 	{
             if(intervalBounds.size()==0) { cerr << "ERROR in matchedSplineFit, intervalBounds size is zero" << endl; throw std::runtime_error("ERROR in matchedSplineFit"); }
-	if(splineOrder<1) {LOGGER << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1"; splineOrder=1;}
+	if(splineOrder<1) {LOGGER << "WARNING: splineOrder has to be at least 0, setting splineOrder to 0"; splineOrder=1;} //splineOrder=m+1
 	
 	unsigned int numberIntervals=intervalBounds.size();
 	unsigned int matrixRows = 0;
@@ -820,7 +834,7 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 			currentMatrixRow++;
 			}
 			
-/**/ if(jumpSuppression>0)
+	if(jumpSuppression>0)
 	{
 	double factor=sqrt(jumpSuppression/double(numberIntervals));
 	for(unsigned int i=0;i<numberIntervals-1;i++) 
@@ -834,7 +848,6 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 	//gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals-1, splineOrder-1, factor*chisqArray[0]/(aMaxVector[0]));
 	//if(numberIntervals>1) gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals, splineOrder+numberIntervals-2, factor*chisqArray[numberIntervals-1]/(aMaxVector[numberIntervals-1]));
 	}
-/**/
 	
 	//chi^2 minimization using full design matrix
 	gsl_matrix * V = gsl_matrix_alloc (matrixCols, matrixCols);
@@ -846,7 +859,8 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 	currentMatrixRow=0;
 	vector<double> theChisq; vector<int> theDOF;
 	LOGGER << "Checking separate chi_n^2/n in spline fit\n"
-               << "level" << '\t' << "n" << '\t' << "chi_n^2/n" << '\t' << "sqrt(2/n)";
+		<< left << setw(8) << "level" << setw(8) << "n" 
+		<< setw(16) << "chi_n^2/n" << setw(16) << "max chi_n^2/n";
 	for(unsigned int j=0;j < currentAnalysisBins.size();j++)
 		{
 		int dof = currentAnalysisBins[j].size();
@@ -854,7 +868,11 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 		double chisq; gsl_blas_ddot (&currentgslb.vector, &currentgslb.vector, &chisq);
 		chisq*=double(pow(2,j))/double(dof);
 		theChisq.push_back(chisq); theDOF.push_back(dof);
-		LOGGER << j << '\t' << dof << '\t' << chisq << '\t' << sqrt(2./double(dof));
+	
+		LOGGER << left << fixed << setprecision(4) << setw(8) << j << setw(8) << dof 
+			<< right << setw(9) << chisq << setw(7) << " "
+			<< left << setw(16) << 1+currentFitAcceptanceThreshold*sqrt(2./double(dof));
+	
 		currentMatrixRow+=dof;
 		}
 

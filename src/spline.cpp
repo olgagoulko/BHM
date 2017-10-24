@@ -69,8 +69,13 @@ bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > current
 			currentChisq*=1./double(numberSlotsAtCurrentLevel);
 			double delta=1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
 			if(delta<chisqArrayElement) chisqArrayElement=delta;
-			if(checkIntervals) LOGGER << intervalOrder+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel));
-			if(currentChisq>1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; break;}
+			if(checkIntervals) 
+				LOGGER << left << fixed << setprecision(4) << setw(8) << intervalOrder+j << setw(8) << numberSlotsAtCurrentLevel
+				<< right << setw(9) << currentChisq << setw(7) << " "
+				<< left << setw(16) << 1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel));
+						
+			if(currentChisq>1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)))
+				{currentSplineGood=false; break;}
 			}
 		else 
 			{
@@ -142,9 +147,9 @@ std::ostream& splinePiece::printSplinePiece(std::ostream& strm, verbosity_level_
         if (vlevel==VERBOSE) bounds.printBoundsInfo(strm, CONCISE);
 	// strm << "spline piece order: " << splineOrder << endl;
 	// strm << "spline piece coefficients and error coefficients" << endl;
-	for(unsigned int i=0;i<splineOrder;i++) strm << setprecision(10) << splineCoefficients[i] << " ";
+	for(unsigned int i=0;i<splineOrder;i++) strm << setprecision(16) << splineCoefficients[i] << " ";
 	strm << endl;
-	for(unsigned int i=0;i<2*splineOrder-1;i++) strm << setprecision(10) << splineErrorCoefficients[i] << " ";
+	for(unsigned int i=0;i<2*splineOrder-1;i++) strm << setprecision(16) << splineErrorCoefficients[i] << " ";
 	strm << endl;
         return strm;
 	}
@@ -306,12 +311,19 @@ double splineArray::splineDerivative(double variable, unsigned int derivativeOrd
 
 std::ostream& splineArray::printSplineArrayInfo(std::ostream& strm) const
 	{
-	strm << "##Lower Bound: " << lowerBound << endl;
-	strm << "##Upper Bound: " << upperBound << endl;
-	strm << "##Spline order: " << splineOrder-1 << endl;
-	strm << left << setw(4) << "## level" << '\t' << setw(8) << "n" << '\t'  << setw(12) << "chi_n^2/n" << '\t' << setw(12) << "sqrt(2/n)" << '\t' << setw(12) << "deviation in sqrt(2/n) units" << endl;
+	strm << "Printing fit information" << endl;
+	strm << "Lower Bound:  " << lowerBound << endl;
+	strm << "Upper Bound:  " << upperBound << endl;
+	strm << "Spline order: " << splineOrder-1 << endl;
+	strm << left << setw(8) << "level" << setw(8) << "n"
+	<< setw(16) << "chi_n^2/n" << setw(16) << "sqrt(2/n)"
+	<< setw(16) << "deviation" << endl; //deviation from 1 in sqrt(2/n) units (if positive)
+	
 	for(unsigned int i=0;i<levelsChiSquared.size();i++)
-		strm << "#" << left << setw(4) << setprecision(10) << i << '\t' << setw(8) <<  levelsDegreesOfFreedom[i] << '\t' << setw(12) << levelsChiSquared[i] << '\t' << setw(12) << sqrt(2./double(levelsDegreesOfFreedom[i])) << '\t' << setw(12) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
+		strm << left << fixed << setprecision(6) << setw(8) << i << setw(8) <<  levelsDegreesOfFreedom[i]
+		<< setw(16) << levelsChiSquared[i]
+		<< setw(16) << sqrt(2./double(levelsDegreesOfFreedom[i]))
+		<< setw(16) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
 
         return strm;
 	}

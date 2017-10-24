@@ -33,6 +33,16 @@ struct fitAcceptanceThreshold {
 	int steps;
 } ;
 
+struct BHMparameters {
+	BHMparameters() : dataPointsMin(100), splineOrder(4), minLevel(2), usableBinFraction(0.25), jumpSuppression(0) {}
+	int dataPointsMin;
+	unsigned int splineOrder;
+	unsigned int minLevel;
+	fitAcceptanceThreshold threshold;
+	double usableBinFraction;
+	double jumpSuppression;
+} ;
+
 /// Read basis slots from a formatted stream (a file)
 std::vector<basisSlot*> readBasisSlots(std::istream&);
 
@@ -48,6 +58,7 @@ private:
 	bool noUpperBound;
 	std::vector<basisSlot*> basisSlots;
         unsigned long numberOfInboundsSamples;
+	double normalizationFactor;	//defined inside histogram so we can read it from file together with histogram itself
 	
 public:
 
@@ -85,13 +96,9 @@ public:
             The pointers must be heap-allocated via `new`, otherwise the behavior is undefined.
         */
 	histogramBasis(std::vector<basisSlot*> theBasisSlots);
-
         /// Construct from a formatted stream (e.g., a file)
         histogramBasis(std::istream&);
-
         ~histogramBasis();
-
-        
     
 	histogramBasis& operator= (const histogramBasis& toBeAssigned);
 	histogramBasis (const histogramBasis& toBeCopied);
@@ -110,11 +117,10 @@ public:
         double getLowerBound() const { return lowerBound; }
         double getUpperBound() const { return upperBound; } // FIXME: what should it return for "no upper bound"? +INF?
         bool hasUpperBound() const { return !noUpperBound; }
-        unsigned long getNumberOfSamples() const {
-            return numberOfInboundsSamples+getExcessCounter();
-        } 
+        unsigned long getNumberOfSamples() const {return numberOfInboundsSamples+getExcessCounter();} 
 	long getExcessCounter() const {return valuesOutsideBounds->getExcessCounter();}
 	double getExcessValues(double norm) const {return valuesOutsideBounds->getExcessValues(norm);}
+	double getNorm() const {return normalizationFactor;}
 	
 	histogramBasis coarseGrainedHistogram(int minNumberTimesSampled = defaultMinNumberTimesSampled);
 	
@@ -127,12 +133,12 @@ public:
 	histogramBasis normalizedHistogram(double norm);
 	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
-	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm, double usableBinFraction);
-        splineArray BHMfit(unsigned int splineOrder, unsigned int minLevel, double usableBinFraction, long int norm, fitAcceptanceThreshold theThreshold, double jumpSuppression, bool fail_if_zero);
+	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm, int dataPointsMin, double usableBinFraction);
+        splineArray BHMfit(BHMparameters parameters, long int norm, bool fail_if_zero);
 };
 std::ostream& operator<<(std::ostream& , const histogramBasis&);
 
 
-splineArray matchedSplineFit(std::vector< std::vector< basisSlot* > > currentAnalysisBins, std::vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, std::vector< double > aMaxVector, std::vector< double > chisqArray);
+splineArray matchedSplineFit(std::vector< std::vector< basisSlot* > > currentAnalysisBins, std::vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, std::vector< double > aMaxVector, std::vector< double > chisqArray, double currentFitAcceptanceThreshold);
 
 #endif

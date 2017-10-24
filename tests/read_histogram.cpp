@@ -218,7 +218,6 @@ static void read()
         "6.75  5\n"
         "7.00\n";
 
-    const double excess_val=5.0;
     const long excess_count=2;
     const double slots[6][5]=
     {
@@ -256,7 +255,6 @@ static void read()
     }
     sput_fail_unless(hist.getNumberOfSamples()==nsamples+excess_count, "Histogram number of samples");
     sput_fail_unless(hist.getExcessCounter()==excess_count, "Histogram excess count");
-    sput_fail_unless(hist.getExcessValues(1.0)==excess_val, "Histogram excess value");
 }
 
 int main(int argc, char **argv)

@@ -57,10 +57,20 @@ int main(int argc, char **argv) {
 		}
 
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
+	
+	fitAcceptanceThreshold threshold;
+	threshold.min=2.0; threshold.max=4.0; threshold.steps=4;
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
 
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, 2, 0, true);
-	testBHMfit.printSplineArrayInfo(); cout << endl;
-	testBHMfit.printSplines();
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
+	testBHMfit.printSplineArrayInfo(cout); cout << endl;
+	testBHMfit.printSplines(cout);
 	
 	//FFT of a real valued array (result is "half-complex", symmetry f(omega)=f*(-omega))
 	int length=binHistogram.getSize();

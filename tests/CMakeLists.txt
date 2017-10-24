@@ -32,7 +32,7 @@ endmacro()
 # we need a sample input in the test binary directory
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sample.param ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
-bhm_add_test(maintest basic_unittest.cpp)
+bhm_add_test(maintest twopeaks_test.cpp)
 bhm_add_test(iniparser iniparser.cpp)
 bhm_add_test(utilities utilities.cpp)
 bhm_add_test(read_histogram read_histogram.cpp)

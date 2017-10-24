@@ -55,14 +55,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 #define defaultMinNumberTimesSampled 100
 
-//aliases
-
-
-//global parameters that may be passed as options
-//extern double someGlobalParameter;
-
 //convenience functions
-double get_option(int inputN,char *inputV[],char *was);		//Passing options when starting program, e.g. as ./sampling -option1 5.0 -option2 1.0 ...
+double get_option(int inputN,char *inputV[],char *was);		//Passing options when starting program, e.g. as ./sampling -option1 5.0 
 bool acceptreject(double probability, gsl_rng* RNG);		//whether to accept or reject update according to probability
 bool isAround(double whatWeHave, double whatItShouldBe, double accuracy = ACCURACY);
 int whatsign(double a);
@@ -78,7 +72,7 @@ enum return_code_type {
     BAD_ARGS  = 1, ///< Invalid/missing arguments to the program
     BAD_DATA  = 2, ///< Invalid data supplied
     ZERO_DATA = 3, ///< Data is consistent with zero, and the stop was requested
-    BAD_FIT   = 4, ///< Failed to find good fit (the result may still be outputted)
+    BAD_FIT   = 4, ///< Failed to find good fit (the result may still be output)
     OTHER_ERROR =100 ///< Some other error
 };
 

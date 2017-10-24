@@ -108,7 +108,15 @@ int main(int argc, char **argv) {
 
 	fitAcceptanceThreshold threshold;
 	threshold.min=2.0; threshold.max=5.0; threshold.steps=3;
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
 	testBHMfit.printSplines(cout);
 	
 	vector<slotBounds> intervalBounds=testBHMfit.getBounds();
@@ -132,8 +140,8 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 		
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-		testfit2 = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+		testfit2 = matchedSplineFit(currentAnalysisBins, intervalBounds, theParameters.splineOrder, theParameters.jumpSuppression, dummy, dummy, threshold.min);
 		
 		for(unsigned int j=0;j<intervalBounds.size();j++)
 			{

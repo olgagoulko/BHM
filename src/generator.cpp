@@ -17,15 +17,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301 USA.
 
 *** END OF LICENCE ***/
-#include <vector>
-
 #include "histogram.hpp"
 #include "spline.hpp"
 #include "basic.hpp"
 #include "slot.hpp"
-
 #include "iniparser_frontend.hpp"
-
 #include "grid.hpp"
 
 using namespace std;
@@ -87,6 +83,7 @@ public:
         virtual bool use_sampling() const { return true; }
             
         virtual double theTestFunctionValue(double variable) const =0;
+	virtual int theTestFunctionSign(double variable) const {return 1;}	//for efficiency reasons: most test functions are always positive
 
        double operator()(double variable) const { return theTestFunctionValue(variable); }
 };
@@ -116,6 +113,7 @@ struct QuarticPolynomial : public testFunction_base
     {}
 
     virtual double theTestFunctionValue(double x) const { return pow(x,4)-0.8*x*x; }
+    virtual int theTestFunctionSign(double x) const { return whatsign(theTestFunctionValue(x)); }
 };
 
 
@@ -352,6 +350,27 @@ int Main(int argc, char **argv) {
 
 	vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth);
 	histogramBasis binHistogram(histogramVector);
+	
+	//additional non-uniform histogram, only for triple gaussian example
+	vector<basisSlot*> histogramVectorNonUniform;
+	if(!myTestFunction.use_sampling())
+		{
+		double theMin=0; double width=5./pow(2.,11);
+		for(int i=0;i<pow(2,7);i++)
+			{
+			slotBounds currentBounds(theMin, theMin+width);
+			histogramVectorNonUniform.push_back(new taylorSlot(currentBounds, 0));
+			theMin+=width; width*=1.03376593998699205887137064727248890649;
+			}
+		theMin=0; width=5./pow(2.,11);
+		for(int i=0;i<pow(2,7);i++)
+			{
+			slotBounds currentBounds(theMin-width, theMin);
+			histogramVectorNonUniform.insert(histogramVectorNonUniform.begin(), new taylorSlot(currentBounds, 0));
+			theMin-=width; width*=1.03376593998699205887137064727248890649;
+			}
+		}
+	histogramBasis binHistogramNonUniform(histogramVectorNonUniform);
 
 	//rejection method to generate x with appropriate probabilities
 	for(int i=0; i<samplingSteps;i++)
@@ -371,12 +390,28 @@ int Main(int argc, char **argv) {
 			if(i%5==0) {variable = gsl_ran_gaussian (RNG, 0.2);}
 			else if(i%2==0) {variable = 2+ gsl_ran_gaussian (RNG, 1.0);}
 			else {variable = -2+ gsl_ran_gaussian (RNG, 1.0);}
+			
+			binHistogramNonUniform.sample(variable, myTestFunction.theTestFunctionSign(variable));
 			}
 		
-		binHistogram.sampleUniform(variable,whatsign(myTestFunction(variable)));
+		binHistogram.sampleUniform(variable, myTestFunction.theTestFunctionSign(variable));
 		}
 
+	output << 0 << " ";
         output << setprecision(12) << binHistogram;
+	
+	//additional non-uniform histogram, only for triple gaussian example
+	if(!myTestFunction.use_sampling())
+		{
+		std::string out_hist_name2=out_hist_name; out_hist_name2.insert(0,"nonuniform_");
+		std::ofstream output_file_stream2;
+		output_file_stream2.open(out_hist_name2.c_str());
+
+		std::ostream& output2=*(out_hist_name.empty()? &std::cout : &output_file_stream2);
+	
+		output2 << 0 << " ";
+		output2 << setprecision(12) << binHistogramNonUniform;
+		}
         
 	return OK;
 	

@@ -94,12 +94,21 @@ int main(int argc, char **argv) {
 		histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 		
 		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=5.5; threshold.steps=7;
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);
+		BHMparameters theParameters;
+		theParameters.dataPointsMin=100;
+		theParameters.splineOrder=4;
+		theParameters.minLevel=2;
+		theParameters.threshold=threshold;
+		theParameters.usableBinFraction=0.25;
+		theParameters.jumpSuppression=0;
+		
+		splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
 		bool acceptance=testBHMfit.getAcceptance();
 		
 		cout << "round = " << round << ", acceptance = " << acceptance << ", number knots = " << testBHMfit.numberKnots() << endl;
 
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 1, true, false);
+		theParameters.jumpSuppression=1.0;
+		splineArray testJumpSuppression = binHistogram.BHMfit(theParameters, samplingSteps, false);
 		
 		int numberSteps=10000; double stepWidth=(maxVar-minVar)/double(numberSteps);
 		double differenceIntegral=0; double differenceCurvatureIntegral=0; double differenceBasisIntegral=0;
