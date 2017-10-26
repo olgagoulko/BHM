@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
 	gsl_fft_real_radix2_transform (data, 1, length);
 	gsl_fft_real_radix2_transform (bhmdata, 1, bhmlength);
 		
-	//we will output the same information in the conventional order as a complex blitz array (frequencies from 0 to 1/2dt) -- i do this manually because the gsl function is super intransparent
+	//output the same information in the conventional order as a complex array (frequencies from 0 to 1/2dt)
 		
 	complex<double> endarray[length/2+1]; complex<double> bhmendarray[bhmlength/2+1];// only positive frequencies
 	endarray[0]=normalisation*data[0]; bhmendarray[0]=bhmnormalisation*bhmdata[0];

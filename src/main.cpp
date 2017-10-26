@@ -76,7 +76,7 @@ int Main(int argc, char **argv) {
 
         LOGGER << "--------------------------- BHM fit -----------------------------";
         
-	int dataPointsMin=par.get(":DataPointsMin", 100);
+	unsigned int dataPointsMin=par.get(":DataPointsMin", 100);
 	if (dataPointsMin<10) {
 		std::cerr << "Warning: DataPointsMin too small, resetting it to 10";
 		dataPointsMin=10;
@@ -154,6 +154,7 @@ int Main(int argc, char **argv) {
         
         if (!infile_name.empty()) infile_stream.close();
      
+	unsigned int histogramPower=(unsigned int)ilog2(binHistogram.getSize());
         if (ilog2(binHistogram.getSize())<0) {
             std::cerr << "Number of bins (" << binHistogram.getSize()
                       << ") must be a power of 2"
@@ -164,7 +165,7 @@ int Main(int argc, char **argv) {
 		std::cerr << "Number of bins (" << binHistogram.getSize() << ") is too small" << std::endl;
 		return BAD_DATA;
 	}
-        else if (minLevel+2>ilog2(binHistogram.getSize())) {
+	else if (minLevel+2>histogramPower) {
 		std::cerr << "Warning: MINLEVEL too large for histogram size, resetting it to 2";
 		minLevel=2;
 	}

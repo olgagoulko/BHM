@@ -269,7 +269,7 @@ void basisSlot::normalize(double norm)
 	}
 
 
-void basisSlot::updateEnoughSampled(int minNumberTimesSampled)
+void basisSlot::updateEnoughSampled(unsigned int minNumberTimesSampled)
 	{
 	if(numberTimesSampled>=minNumberTimesSampled) enoughData=true;
 	else enoughData=false;

@@ -109,7 +109,7 @@ public:
 	long getNumberTimesSampled() const {return numberTimesSampled;}
 	slotBounds getBounds() const {return bounds;}
 	
-	void updateEnoughSampled(int minNumberTimesSampled = defaultMinNumberTimesSampled);
+	void updateEnoughSampled(unsigned int minNumberTimesSampled = defaultMinNumberTimesSampled);
 	bool enoughSampled() const {return enoughData;}
 	
 	double sampledIntegral() const;

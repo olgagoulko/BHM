@@ -13,6 +13,7 @@ double testFunction(double variable)
 
 int main(int argc, char **argv) {
 	
+	//still in development
 	cout << "----------------- Test distribution with periodic boundary conditions ----------------" << endl;
 	
 	long unsigned int seed=345902845;
@@ -57,7 +58,15 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 
 	fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=2; threshold.steps=0;
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0, true, false);	//type of boundary condition to be entered here
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);	//type of boundary condition to be entered here
 	testBHMfit.printSplineArrayInfo(cout); cout << endl;
 	testBHMfit.printSplines(cout);
 	
@@ -82,7 +91,7 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
 		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy, threshold.min);
 			
 		for(unsigned int j=0;j<intervalBounds.size();j++)

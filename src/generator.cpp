@@ -353,7 +353,7 @@ int Main(int argc, char **argv) {
 	
 	//additional non-uniform histogram, only for triple gaussian example
 	vector<basisSlot*> histogramVectorNonUniform;
-	if(!myTestFunction.use_sampling())
+	if(myTestFunction.use_sampling()==false)
 		{
 		double theMin=0; double width=5./pow(2.,11);
 		for(int i=0;i<pow(2,7);i++)

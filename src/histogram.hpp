@@ -35,7 +35,7 @@ struct fitAcceptanceThreshold {
 
 struct BHMparameters {
 	BHMparameters() : dataPointsMin(100), splineOrder(4), minLevel(2), usableBinFraction(0.25), jumpSuppression(0) {}
-	int dataPointsMin;
+	unsigned int dataPointsMin;
 	unsigned int splineOrder;
 	unsigned int minLevel;
 	fitAcceptanceThreshold threshold;
@@ -122,7 +122,7 @@ public:
 	double getExcessValues(double norm) const {return valuesOutsideBounds->getExcessValues(norm);}
 	double getNorm() const {return normalizationFactor;}
 	
-	histogramBasis coarseGrainedHistogram(int minNumberTimesSampled = defaultMinNumberTimesSampled);
+	histogramBasis coarseGrainedHistogram(unsigned int minNumberTimesSampled);
 	
 	void sample(double variable, double valueToSample);
 	void sampleUniform(double variable, double valueToSample);
@@ -133,7 +133,7 @@ public:
 	histogramBasis normalizedHistogram(double norm);
 	bool addAnotherHistogram(histogramBasis anotherHistogram);
 	
-	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm, int dataPointsMin, double usableBinFraction);
+	std::vector< std::vector< basisSlot* > > binHierarchy(long int norm, unsigned int dataPointsMin, double usableBinFraction);
         splineArray BHMfit(BHMparameters parameters, long int norm, bool fail_if_zero);
 };
 std::ostream& operator<<(std::ostream& , const histogramBasis&);

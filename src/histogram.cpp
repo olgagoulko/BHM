@@ -83,10 +83,12 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfInboundsSamples(0)
 	{
 	valuesOutsideBounds = new excessBin();
-        // FIXME: BUG: what if theBasisSlots.size()==0 ? I am inserting an assert() for now.
-        assert(theBasisSlots.size()>0);
-	lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound();
-	upperBound=(theBasisSlots[0] -> getBounds()).getUpperBound();
+        //histogram with zero basis slots is permitted
+	if(theBasisSlots.size()==0) {lowerBound=0;upperBound=0;}
+        else {
+		lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound();
+		upperBound=(theBasisSlots[0] -> getBounds()).getUpperBound();
+		}
         noUpperBound=false;
 	for(unsigned int i=0;i<theBasisSlots.size();i++)
 		{
@@ -116,7 +118,9 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 		for (vector<basisSlot*>::iterator i = basisSlots.begin(); i != basisSlots.end(); i++ ) delete *i;
 		basisSlots.clear();
 		
-		lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+		if(toBeAssigned.getSize()==0) lowerBound=0;
+		else lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); 
+		upperBound=0; noUpperBound=false;
                 numberOfInboundsSamples=toBeAssigned.numberOfInboundsSamples;
 		normalizationFactor=toBeAssigned.normalizationFactor;
 			
@@ -138,7 +142,9 @@ histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfInboun
 	{
 	valuesOutsideBounds = new excessBin(toBeCopied.getExcessCounter(),toBeCopied.getExcessValues(1.));
 	
-	lowerBound=(toBeCopied.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+	if(toBeCopied.getSize()==0) lowerBound=0;
+	else lowerBound=(toBeCopied.getSlot(0) -> getBounds()).getLowerBound(); 
+	upperBound=0; noUpperBound=false;
 	
 	normalizationFactor=toBeCopied.normalizationFactor;
 	
@@ -292,7 +298,7 @@ void histogramBasis::sample(double variable, double valueToSample)
 void histogramBasis::sampleUniform(double variable, double valueToSample)
 	{
 	//faster sampling, assuming all slots are of equal width, without overlaps
-	if(variable > upperBound || variable < lowerBound) valuesOutsideBounds -> sample(variable, valueToSample);
+	if(variable > upperBound || variable < lowerBound || basisSlots.size()==0) valuesOutsideBounds -> sample(variable, valueToSample);
 	else 
 		{
 		basisSlots[int((variable-lowerBound)/((basisSlots[0] -> getBounds()).slotWidth()))] -> sample(variable,valueToSample);
@@ -301,7 +307,7 @@ void histogramBasis::sampleUniform(double variable, double valueToSample)
 	}
 
 
-histogramBasis histogramBasis::coarseGrainedHistogram(int minNumberTimesSampled)
+histogramBasis histogramBasis::coarseGrainedHistogram(unsigned int minNumberTimesSampled)
 	{
 	vector<basisSlot*> coarseGrainedSlots;
 	unsigned int counter=0; bool enough;
@@ -452,7 +458,7 @@ bool histogramBasis::addAnotherHistogram(histogramBasis anotherHistogram)
 	}
 
 
-vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, int dataPointsMin, double usableBinFraction)
+vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, unsigned int dataPointsMin, double usableBinFraction)
 	{
 	unsigned int numberElementaryBins = basisSlots.size();
 	unsigned int maxLevel=rounding(log(double(numberElementaryBins))/log(2));
