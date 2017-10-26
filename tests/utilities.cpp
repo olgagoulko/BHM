@@ -39,7 +39,7 @@ static std::string toString(int i)
 
 static void test_ilog2()
 {
-    for (int i=0; i<sizeof(int)*8-1; ++i) {
+    for (int i=0; i<(int)(sizeof(int))*8-1; ++i) {
         int n=1<<i;
         std::string msg=toString(n)+"=2^"+toString(i);
         sput_fail_unless(ilog2(n)==i, msg.c_str());
