@@ -26,7 +26,7 @@ macro(bhm_add_test name src)
   add_executable(${name} ${src})
   add_test(NAME ${name} COMMAND ${name})
   target_link_libraries(${name} samplinglibrary ${GSL_LIBRARIES} libiniparser)
-  install(TARGETS ${name} RUNTIME DESTINATION bin)
+  # install(TARGETS ${name} RUNTIME DESTINATION bin)
 endmacro()
 
 # we need a sample input in the test binary directory
