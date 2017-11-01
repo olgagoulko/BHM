@@ -14,13 +14,17 @@ endif()
 set(CMAKE_MODULE_PATH ..)
 
 find_package(GSL REQUIRED)
-message("GSL include dir:" ${GSL_INCLUDE_DIR})
-message("GSL libraries:" ${GSL_LIBRARIES})
+message(STATUS "GSL include dir:" ${GSL_INCLUDE_DIR})
+message(STATUS "GSL libraries:" ${GSL_LIBRARIES})
+message(STATUS "GSL link directories: " ${GSL_LINK_DIRECTORIES})
 
 include_directories(
     ${GSL_INCLUDE_DIR}
     . .. ../src
 )
+
+list(APPEND CMAKE_INSTALL_RPATH ${GSL_LINK_DIRECTORIES})
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 macro(bhm_add_test name src)
   add_executable(${name} ${src})

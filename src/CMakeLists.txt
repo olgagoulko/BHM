@@ -3,8 +3,12 @@ cmake_minimum_required (VERSION 2.8)
 set(CMAKE_MODULE_PATH ..)
 
 find_package(GSL REQUIRED)
-message("GSL include dir:" ${GSL_INCLUDE_DIR})
-message("GSL libraries:" ${GSL_LIBRARIES})
+message(STATUS "GSL include dir:" ${GSL_INCLUDE_DIR})
+message(STATUS "GSL libraries:" ${GSL_LIBRARIES})
+message(STATUS "GSL link directories:" ${GSL_LINK_DIRECTORIES})
+
+list(APPEND CMAKE_INSTALL_RPATH ${GSL_LINK_DIRECTORIES})
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 include_directories(
     ${GSL_INCLUDE_DIR}
