@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "histogram.hpp"
 #include "spline.hpp"
 #include "basic.hpp"
@@ -84,9 +103,18 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, 2, 0);
-	testBHMfit.printSplineArrayInfo(); cout << endl;
-	testBHMfit.printSplines();
+	fitAcceptanceThreshold threshold; threshold.min=2;
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
+	testBHMfit.printSplineArrayInfo(cout); cout << endl;
+	testBHMfit.printSplines(cout);
 	
 	intervalBounds=testBHMfit.getBounds();
 	for(int round=0;round<bootstrapSamples;round++)
@@ -109,8 +137,8 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+		testBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy, threshold.min);
 			
 		for(unsigned int j=0;j<intervalBounds.size();j++)
 			{
@@ -146,7 +174,7 @@ int main(int argc, char **argv) {
 		
 	splineArray averageBootstrapSpline(theBootstrapSplines);
 	cout << "Average Bootstrap Spline" << endl;
-	averageBootstrapSpline.printSplineArrayInfo(); averageBootstrapSpline.printSplines(); cout << endl;
+	averageBootstrapSpline.printSplineArrayInfo(cout); averageBootstrapSpline.printSplines(cout); cout << endl;
 	
 	ofstream output("histogram_testoutput.dat");
 	double printStep=0.05; double currentVar2; pair<double,double> coarseGrainedResult; pair<double,double> basisResult;

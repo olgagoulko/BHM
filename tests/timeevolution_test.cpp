@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "histogram.hpp"
 #include "spline.hpp"
 #include "basic.hpp"
@@ -74,19 +93,20 @@ int main(int argc, char **argv) {
 			
 		histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingStepsCounter);
 			
-		double threshold=2;
-		splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 0);
+		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=5.5; threshold.steps=7;
+		BHMparameters theParameters;
+		theParameters.dataPointsMin=100;
+		theParameters.splineOrder=4;
+		theParameters.minLevel=2;
+		theParameters.threshold=threshold;
+		theParameters.usableBinFraction=0.25;
+		theParameters.jumpSuppression=0;
+		
+		splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingStepsCounter, false);
 		bool acceptance=testBHMfit.getAcceptance();
 			
-		while(acceptance==false)
-			{
-			threshold+=0.5;
-			testBHMfit = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 0);
-			acceptance=testBHMfit.getAcceptance();
-			if(threshold>5) break;
-			}
-			
-		splineArray testJumpSuppression = binHistogram.BHMfit(4, 2, samplingStepsCounter, threshold, 1);
+		theParameters.jumpSuppression=1.0;
+		splineArray testJumpSuppression = binHistogram.BHMfit(theParameters, samplingStepsCounter, false);
 			
 		if( acceptance ) numberOfGoodFits++;
 			
@@ -101,7 +121,7 @@ int main(int argc, char **argv) {
 			}
 		output << endl; output << endl;
 			
-		cout << "fit info: " << testBHMfit.getAcceptance() << '\t' << threshold << '\t' << testBHMfit.numberKnots() << endl;
+		cout << "fit info: " << testBHMfit.getAcceptance() << '\t' << testBHMfit.getThreshold() << '\t' << testBHMfit.numberKnots() << endl;
 		}
 
 	cout << "number of good fits: " << numberOfGoodFits << endl;

@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "histogram.hpp"
 #include "spline.hpp"
 #include "basic.hpp"
@@ -87,17 +106,18 @@ int main(int argc, char **argv) {
 	histogramBasis scaledBinHistogram = binHistogram.scaledHistogram(samplingSteps);
 	histogramBasis scaledBasisHistogram = basisHistogram.scaledHistogram(samplingSteps);
 
-	double threshold=2;
-	splineArray testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-	bool acceptance=testBHMfit.getAcceptance();
-	while(acceptance==false)
-		{
-		threshold+=1;
-		testBHMfit = binHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-		acceptance=testBHMfit.getAcceptance();
-		if(threshold>5) break;
-		}
-	testBHMfit.printSplines();
+	fitAcceptanceThreshold threshold;
+	threshold.min=2.0; threshold.max=5.0; threshold.steps=3;
+	BHMparameters theParameters;
+	theParameters.dataPointsMin=100;
+	theParameters.splineOrder=4;
+	theParameters.minLevel=2;
+	theParameters.threshold=threshold;
+	theParameters.usableBinFraction=0.25;
+	theParameters.jumpSuppression=0;
+	
+	splineArray testBHMfit = binHistogram.BHMfit(theParameters, samplingSteps, false);
+	testBHMfit.printSplines(cout);
 	
 	vector<slotBounds> intervalBounds=testBHMfit.getBounds();
 	for(int round=0;round<bootstrapSamples;round++)
@@ -120,8 +140,8 @@ int main(int argc, char **argv) {
 			averageCov.push_back(theCovVec);
 			}
 		
-		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-		testfit2 = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+		vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+		testfit2 = matchedSplineFit(currentAnalysisBins, intervalBounds, theParameters.splineOrder, theParameters.jumpSuppression, dummy, dummy, threshold.min);
 		
 		for(unsigned int j=0;j<intervalBounds.size();j++)
 			{

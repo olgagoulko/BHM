@@ -14,19 +14,23 @@ endif()
 set(CMAKE_MODULE_PATH ..)
 
 find_package(GSL REQUIRED)
-message("GSL include dir:" ${GSL_INCLUDE_DIR})
-message("GSL libraries:" ${GSL_LIBRARIES})
+message(STATUS "GSL include dir:" ${GSL_INCLUDE_DIR})
+message(STATUS "GSL libraries:" ${GSL_LIBRARIES})
+message(STATUS "GSL link directories: " ${GSL_LINK_DIRECTORIES})
 
 include_directories(
     ${GSL_INCLUDE_DIR}
     . .. ../src
 )
 
+list(APPEND CMAKE_INSTALL_RPATH ${GSL_LINK_DIRECTORIES})
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+
 macro(bhm_add_test name src)
   add_executable(${name} ${src})
   add_test(NAME ${name} COMMAND ${name})
   target_link_libraries(${name} samplinglibrary ${GSL_LIBRARIES} libiniparser)
-  install(TARGETS ${name} RUNTIME DESTINATION bin)
+  # install(TARGETS ${name} RUNTIME DESTINATION bin)
 endmacro()
 
 # we need a sample input in the test binary directory
@@ -34,3 +38,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sample.param ${CMAKE_CURRENT_BINARY_D
 
 bhm_add_test(maintest basic_unittest.cpp)
 bhm_add_test(iniparser iniparser.cpp)
+bhm_add_test(utilities utilities.cpp)
+bhm_add_test(read_histogram read_histogram.cpp)
+bhm_add_test(histogram_unittest histogram_unittest.cpp)
+bhm_add_test(logger logger.cpp)
+bhm_add_test(grid_test grid_test.cpp)

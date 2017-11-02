@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "histogram.hpp"
 #include "basic.hpp"
 #include "slot.hpp"
@@ -6,6 +25,22 @@
 
 using namespace std; 
 
+static void test_histogram_bounds()
+{
+    double minVar=-10;
+    double maxVar=-5;
+    double slotWidth=0.5;
+    int numberOverlaps=0;
+    int totalNumOfBasisFn=0;
+    vector<basisSlot*> histogramVector=generateBasisSlots(minVar, maxVar, slotWidth, numberOverlaps, totalNumOfBasisFn);
+    histogramBasis hist(histogramVector);
+
+    std::cout << "upper=" << hist.getUpperBound() << " lower=" << hist.getLowerBound() << std::endl;
+    sput_fail_unless(hist.getUpperBound()==maxVar, "Upper bound");
+    sput_fail_unless(hist.getLowerBound()==minVar, "Lower bound");
+    sput_fail_unless(hist.hasUpperBound(), "Has upper bound");
+}
+    
 static void test_histogram()
 {
 	double minVar=0; double maxVar=5; double slotWidth=0.5; int numberOverlaps=5; int totalNumOfBasisFn=4;
@@ -17,7 +52,11 @@ static void test_histogram()
 	myTestHistogram.sample(4.0, 5.0);
 	myTestHistogram.sample(10, 1.5);
 	myTestHistogram.sample(8, 3.0);
-	
+
+        std::cerr << "Number of samples=" << myTestHistogram.getNumberOfSamples() << std::endl;
+        sput_fail_unless(myTestHistogram.getNumberOfSamples()==5, "Number of samples");
+        sput_fail_unless(myTestHistogram.getExcessCounter()==2, "Number of excess samples");
+        
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(-1.).first  == 4.5, "4.5 in excess bin");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(6.).first  == 4.5, "4.5 in excess bin");
 	sput_fail_unless(myTestHistogram.sampledFunctionValueAverage(10.).first  == 4.5, "4.5 in excess bin");
@@ -164,6 +203,7 @@ int main(int argc, char **argv) {
 	sput_start_testing();
 
 	sput_enter_suite("test_histogram()");
+        sput_run_test(test_histogram_bounds);
 	sput_run_test(test_histogram);
 	
 	sput_enter_suite("test_combinedSlot()");

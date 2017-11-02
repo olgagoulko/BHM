@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #ifndef SLOT_HPP
 #define SLOT_HPP
 
@@ -45,12 +64,11 @@ public:
 	bool overlapping(const slotBounds& compareBounds) const;
 	double slotWidth() const;
 	
-	void printBoundsInfo() const;
+        std::ostream& printBoundsInfo(std::ostream& strm, verbosity_level_type vlevel) const;
 	
 };
 
 class basisSlot {
-	
 protected:
 	
 	slotBounds bounds;
@@ -65,8 +83,12 @@ protected:
 	bool enoughData;
 	
 public:
-	
+
+        /// Initialize empty slot
 	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
+        /// Initialize and pre-fill a slot without basis functions
+        basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance);
+
 	virtual basisSlot* Clone() { return new basisSlot(*this);}
 	virtual ~basisSlot() {}
 	
@@ -87,10 +109,11 @@ public:
 	long getNumberTimesSampled() const {return numberTimesSampled;}
 	slotBounds getBounds() const {return bounds;}
 	
-	void updateEnoughSampled(int minNumberTimesSampled = defaultMinNumberTimesSampled);
+	void updateEnoughSampled(unsigned int minNumberTimesSampled = defaultMinNumberTimesSampled);
 	bool enoughSampled() const {return enoughData;}
 	
 	double sampledIntegral() const;
+	double getVariance() const {return variance;}
 	double sampledIntegralVariance() const;
 	double sampledIntegralError() const;
 	double sampledFunctionValue(double variable) const;
@@ -98,9 +121,9 @@ public:
 	double sampledFunctionError(double variable) const;
 	std::vector<double> bareBasisSampledCoeffs() const;
 	
-	void printSlotInfo() const;
-	void printGramSchmidtCoeffs() const;
-	void printSampledCoeffs() const;
+	std::ostream& printSlotInfo(std::ostream&) const;
+        void printGramSchmidtCoeffs(std::ostream& =std::cout) const;
+    void printSampledCoeffs(std::ostream& =std::cout) const;
 	
 }; 
 

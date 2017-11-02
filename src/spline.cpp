@@ -1,6 +1,27 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "basic.hpp"
 #include "slot.hpp"
 #include "spline.hpp"
+
+#include <cassert>
 
 using namespace std; 
 
@@ -20,11 +41,11 @@ void splinePiece::setSplinePiece(vector< double > theCoefficients, vector< doubl
 	}
 
 
-bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > currentAnalysisBins, double fitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const
+bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const
 	{
 	bool currentSplineGood=true;
 	if(intervalOrder>currentAnalysisBins.size())
-		{cout << "ERROR in checkIntervalAcceptance, intervalOrder " << intervalOrder << " is larger than size of analysis bins vector " << currentAnalysisBins.size() << endl; exit(EXIT_FAILURE);}
+		{cerr << "ERROR in checkIntervalAcceptance, intervalOrder " << intervalOrder << " is larger than size of analysis bins vector " << currentAnalysisBins.size() << endl; throw std::runtime_error("ERROR in checkIntervalAcceptance");}
 	for(unsigned int j=0;j<currentAnalysisBins.size()-intervalOrder;j++)
 		{
 		//test all bins fully within interval, order by order
@@ -46,19 +67,24 @@ bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > current
 		if(numberSlotsAtCurrentLevel>pow(2,j)/2.)
 			{
 			currentChisq*=1./double(numberSlotsAtCurrentLevel);
-			double delta=1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
+			double delta=1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
 			if(delta<chisqArrayElement) chisqArrayElement=delta;
-			if(checkIntervals) cout << intervalOrder+j << '\t' << numberSlotsAtCurrentLevel << '\t' << currentChisq << '\t' << 1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)) << endl;
-			if(currentChisq>1+fitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))) {currentSplineGood=false; break;}
+			if(checkIntervals) 
+				LOGGER << left << fixed << setprecision(4) << setw(8) << intervalOrder+j << setw(8) << numberSlotsAtCurrentLevel
+				<< right << setw(9) << currentChisq << setw(7) << " "
+				<< left << setw(16) << 1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel));
+						
+			if(currentChisq>1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel)))
+				{currentSplineGood=false; break;}
 			}
 		else 
 			{
-			if(checkIntervals) cout << "Only " << numberSlotsAtCurrentLevel << " good bins, not enough for evaluation" << endl;
+			if(checkIntervals) LOGGER << "Only " << numberSlotsAtCurrentLevel << " good bins, not enough for evaluation";
 			break;
 			}
 		}
 		
-	if(checkIntervals) {cout << "This interval fit is "; if(!currentSplineGood) cout << "not "; cout << "good" << endl;}
+	if(checkIntervals) {LOGGER << "This interval fit is " << (currentSplineGood?"":"not ") << "good";}
 	return currentSplineGood;
 	}
 
@@ -116,15 +142,16 @@ double splinePiece::splineDerivative(double variable, unsigned int derivativeOrd
 	}
 
 
-void splinePiece::printSplinePiece() const
+std::ostream& splinePiece::printSplinePiece(std::ostream& strm, verbosity_level_type vlevel) const
 	{
-	bounds.printBoundsInfo();
-	cout << "spline piece order: " << splineOrder << endl;
-	cout << "spline piece coefficients and error coefficients" << endl;
-	for(unsigned int i=0;i<splineOrder;i++) cout << setprecision(10) << splineCoefficients[i] << '\t';
-	cout << endl;
-	for(unsigned int i=0;i<2*splineOrder-1;i++) cout << setprecision(10) << splineErrorCoefficients[i] << '\t';
-	cout << endl;
+        if (vlevel==VERBOSE) bounds.printBoundsInfo(strm, CONCISE);
+	// strm << "spline piece order: " << splineOrder << endl;
+	// strm << "spline piece coefficients and error coefficients" << endl;
+	for(unsigned int i=0;i<splineOrder;i++) strm << setprecision(16) << splineCoefficients[i] << " ";
+	strm << endl;
+	for(unsigned int i=0;i<2*splineOrder-1;i++) strm << setprecision(16) << splineErrorCoefficients[i] << " ";
+	strm << endl;
+        return strm;
 	}
 
 splineArray::splineArray()
@@ -136,7 +163,8 @@ splineArray::splineArray()
 	intervalBoundaries.resize(0);
 	levelsChiSquared.resize(0);
 	levelsDegreesOfFreedom.resize(0);
-	accetableSpline=false;
+	currentThreshold=0;
+	acceptableSpline=false;
 	}
 
 splineArray::splineArray(vector< splinePiece* > theSplines)
@@ -147,7 +175,8 @@ splineArray::splineArray(vector< splinePiece* > theSplines)
 	intervalBoundaries.resize(0);
 	levelsChiSquared.resize(0);
 	levelsDegreesOfFreedom.resize(0);
-	accetableSpline=false;
+	currentThreshold=0;
+	acceptableSpline=false;
 	splines.resize(0);
 	splines.push_back(theSplines[0]);
 	for(unsigned int i=1;i<theSplines.size();i++)
@@ -179,7 +208,8 @@ splineArray& splineArray::operator=(const splineArray& toBeAssigned)
 		upperBound=(splines[splines.size()-1] -> getBounds()).getUpperBound();
 		splineOrder=(splines[0] -> getSplineOrder());
 		updateLevelProperties(toBeAssigned.levelsChiSquared, toBeAssigned.levelsDegreesOfFreedom);
-		accetableSpline=toBeAssigned.accetableSpline;
+		currentThreshold=toBeAssigned.currentThreshold;
+		acceptableSpline=toBeAssigned.acceptableSpline;
 		intervalBoundaries=toBeAssigned.intervalBoundaries;
 		}
 	return *this;
@@ -197,7 +227,8 @@ splineArray::splineArray(const splineArray& toBeCopied)
 	upperBound=(splines[splines.size()-1] -> getBounds()).getUpperBound();
 	splineOrder=(splines[0] -> getSplineOrder());
 	updateLevelProperties(toBeCopied.levelsChiSquared, toBeCopied.levelsDegreesOfFreedom);
-	accetableSpline=toBeCopied.accetableSpline;
+	currentThreshold=toBeCopied.currentThreshold;
+	acceptableSpline=toBeCopied.acceptableSpline;
 	intervalBoundaries=toBeCopied.intervalBoundaries;
 	}
 
@@ -213,24 +244,25 @@ void splineArray::updateLevelProperties(std::vector<double> theChisq, std::vecto
 		}
 	}
 
-void splineArray::updateGoodness(bool acceptable)
+void splineArray::updateGoodness(bool acceptable, double threshold)
 	{
-	accetableSpline=acceptable;
+	acceptableSpline=acceptable;
+	currentThreshold=threshold;
 	}
 
 
 splinePiece* splineArray::getSplinePiece(unsigned int whichPiece) const
 	{
-	if(whichPiece>=splines.size()) {cout << "ERROR in getSplinePiece, piece number " << whichPiece << " does not exist" << endl; exit(EXIT_FAILURE);}
+	if(whichPiece>=splines.size()) {cerr << "ERROR in getSplinePiece, piece number " << whichPiece << " does not exist" << endl; throw std::runtime_error("ERROR in getSplinePiece");}
 	return splines[whichPiece];
 	}
 
 
-bool splineArray::checkOverallAcceptance(double fitAcceptanceThreshold) const
+bool splineArray::checkOverallAcceptance(double currentFitAcceptanceThreshold) const
 	{
 	bool overallAcceptance=true;
 	for(unsigned int i=0;i<levelsChiSquared.size();i++)
-		if( (levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))>fitAcceptanceThreshold ) overallAcceptance=false;
+		if( (levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))>currentFitAcceptanceThreshold ) overallAcceptance=false;
 	return overallAcceptance;
 	}
 
@@ -267,7 +299,8 @@ double splineArray::splineError(double variable) const
 
 double splineArray::splineDerivative(double variable, unsigned int derivativeOrder) const
 	{
-	bool foundSpline; double result;
+	bool foundSpline;
+        double result=0;
 	for(unsigned int i=0;i<splines.size();i++)
 		{
 		foundSpline=(splines[i] -> getBounds()).checkIfInBounds(variable);
@@ -276,25 +309,55 @@ double splineArray::splineDerivative(double variable, unsigned int derivativeOrd
 	return result;
 	}
 
-void splineArray::printSplineArrayInfo() const
+std::ostream& splineArray::printSplineArrayInfo(std::ostream& strm) const
 	{
-	cout << "Lower Bound: " << lowerBound << endl;
-	cout << "Upper Bound: " << upperBound << endl;
-	cout << "Spline order: " << splineOrder << endl;
-	cout << left << setw(4) << "level" << '\t' << setw(8) << "n" << '\t'  << setw(12) << "chi_n^2/n" << '\t' << setw(12) << "sqrt(2/n)" << '\t' << setw(12) << "deviation in sqrt(2/n) units" << endl;
+	strm << "Printing fit information" << endl;
+	strm << "Lower Bound:  " << lowerBound << endl;
+	strm << "Upper Bound:  " << upperBound << endl;
+	strm << "Spline order: " << splineOrder-1 << endl;
+	strm << left << setw(8) << "level" << setw(8) << "n"
+	<< setw(16) << "chi_n^2/n" << setw(16) << "sqrt(2/n)"
+	<< setw(16) << "deviation" << endl; //deviation from 1 in sqrt(2/n) units (if positive)
+	
 	for(unsigned int i=0;i<levelsChiSquared.size();i++)
-		cout << left << setw(4) << setprecision(10) << i << '\t' << setw(8) <<  levelsDegreesOfFreedom[i] << '\t' << setw(12) << levelsChiSquared[i] << '\t' << setw(12) << sqrt(2./double(levelsDegreesOfFreedom[i])) << '\t' << setw(12) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
+		strm << left << fixed << setprecision(6) << setw(8) << i << setw(8) <<  levelsDegreesOfFreedom[i]
+		<< setw(16) << levelsChiSquared[i]
+		<< setw(16) << sqrt(2./double(levelsDegreesOfFreedom[i]))
+		<< setw(16) << max(0.0,(levelsChiSquared[i]-1)/sqrt(2./double(levelsDegreesOfFreedom[i]))) << endl;
+
+        return strm;
 	}
 
-void splineArray::printSplines() const
+std::ostream& splineArray::printSplines(std::ostream& strm) const
 	{
+	// strm << lowerBound << " " << upperBound << " " << (splineOrder-1) << endl;
+        strm << (splineOrder-1) << " " << splines.size() << endl;
+
+        assert(splines.size()==0 ||
+               (fabs(splines[0]->getBounds().getLowerBound() - lowerBound)<ACCURACY
+               && "First spline lower bound must be the same as array lower bound"));
+
+        assert(splines.size()==0 ||
+               (fabs(splines[splines.size()-1]->getBounds().getUpperBound() - upperBound)<ACCURACY
+               && "Last spline upper bound must be the same as array upper bound"));
+
+        strm << setprecision(10);
+        for(unsigned int i=0;i<splines.size();i++)
+                {
+                assert(i==0 ||
+                       (fabs(splines[i]->getBounds().getLowerBound() - splines[i-1]->getBounds().getUpperBound())<ACCURACY
+                       && "Left upper bound must be the same as right lower bound"));
+
+                strm << splines[i]->getBounds().getLowerBound() << " ";
+                }
+        strm << upperBound << "\n";
+            
 	for(unsigned int i=0;i<splines.size();i++)
 		{
-		cout << "Spline Piece " << i << "  -------------------------------------------------------------------" << endl;
-		splines[i] -> printSplinePiece();
-		cout << "-------------------------------------------------------------------------------------------" << endl;
-		cout << endl;
+		strm << "# spline piece " << (i+1) << endl;
+		splines[i] -> printSplinePiece(strm, CONCISE);
 		}
+        return strm;
 	}
 
 

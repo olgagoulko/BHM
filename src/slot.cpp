@@ -1,5 +1,26 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "basic.hpp"
 #include "slot.hpp"
+
+#include <stdexcept>
 
 using namespace std;
 
@@ -60,30 +81,46 @@ double slotBounds::slotWidth() const
 	{
 	double width=0;
 	if(noUpperBound==false) {width= upperBound-lowerBound;}
-	else {cout << "ERROR: infinite slot width" << endl; exit(EXIT_FAILURE);}
+	else {cerr << "ERROR: infinite slot width" << endl; throw std::runtime_error("ERROR: infinite slot width");}
 	return width;
 	}
 
-void slotBounds::printBoundsInfo() const
+std::ostream& slotBounds::printBoundsInfo(std::ostream& strm, verbosity_level_type vlevel) const
 	{
-	cout << fixed << setprecision(16) << "lowerBound = " << lowerBound << endl;
-	if(noUpperBound) cout << "no upper bound" << endl;
-	else cout << fixed << setprecision(16) << "upperBound = " << upperBound << endl;
-	}
+        if (vlevel==VERBOSE) {
+            strm << "lowerBound = " << fixed << setprecision(16) << lowerBound << endl;
+            if (noUpperBound) {
+                strm << "no upper bound" << endl;
+            } else {
+                strm << "upperBound = " << upperBound << endl;
+            }
+        } else /* not VERBOSE */ {
+            strm << scientific << setprecision(6)
+                 << lowerBound
+                 << " ";
+            if (noUpperBound) {
+                strm << "INF" << endl;
+            } else {
+                strm << upperBound << endl;
+            }
+        }
+        return strm;
+        }
 
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+basisSlot::basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance)
+    : bounds(theBounds), totalNumOfBasisFn(0),
+      integral(theIntegral), variance(theVariance), numberTimesSampled(nhits),
+      enoughData(false) // this needs to be evaluated separately depending on parameter choice
+	{	}
+
 basisSlot::basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn)
+    : bounds(theBounds), totalNumOfBasisFn(theTotalNumOfBasisFn>0? theTotalNumOfBasisFn : 0),
+      integral(0), variance(0), numberTimesSampled(0), enoughData(false)
 	{
-	bounds=theBounds;
-	totalNumOfBasisFn=0;
-	if(theTotalNumOfBasisFn>0) totalNumOfBasisFn=theTotalNumOfBasisFn;
 	GramSchmidtCoeffs.resize(totalNumOfBasisFn);
-	integral=0;
-	variance=0;
-	numberTimesSampled=0;
-	enoughData=false;
 	for(int i=0; i<totalNumOfBasisFn; i++)
 		{
 		sampledCoeffsValues.push_back(0);
@@ -107,7 +144,11 @@ void basisSlot::initializeGramSchmidt()
 				{
 				newnorm+=GramSchmidtCoeffs[i][j1]*GramSchmidtCoeffs[i][j2]*pairwiseIntegral(j1,j2);
 				}
-		if(newnorm<=0) {cout << "ERROR: negative norm in Gram-Schmidt initialization in function number " << i << endl; printSlotInfo(); exit(EXIT_FAILURE);}
+		if(newnorm<=0) {
+                    cerr << "ERROR: negative norm in Gram-Schmidt initialization in function number " << i << endl;
+                    printSlotInfo(std::cerr);
+                    throw std::runtime_error("ERROR: negative norm in Gram-Schmidt initialization in function number");
+                }
 		newnorm=sqrt(newnorm);
 		for(int j1=0; j1<=i; j1++) GramSchmidtCoeffs[i][j1]=GramSchmidtCoeffs[i][j1]/newnorm;
 		for(int j1=i+1; j1<totalNumOfBasisFn; j1++)
@@ -144,7 +185,7 @@ void basisSlot::sample(double variable, double valueToSample)
 			sampledCoeffsVariance[j]+=delta*(samplingTotal-sampledCoeffsValues[j]);
 			}
 		}
-	else {cout << "ERROR: trying to sample in the wrong slot" << endl; exit(EXIT_FAILURE);}
+	else {cerr << "ERROR: trying to sample in the wrong slot" << endl; throw std::runtime_error("ERROR: trying to sample in the wrong slot"); }
 	}
 
 	
@@ -224,11 +265,11 @@ void basisSlot::normalize(double norm)
 			sampledCoeffsValues[j]*=1./norm;
 			}
 		}
-	else {cout << "ERROR: norm not > 0" << endl; exit(EXIT_FAILURE);}
+	else {cerr << "ERROR: norm not > 0" << endl; throw std::runtime_error("ERROR: norm not > 0");}
 	}
 
 
-void basisSlot::updateEnoughSampled(int minNumberTimesSampled)
+void basisSlot::updateEnoughSampled(unsigned int minNumberTimesSampled)
 	{
 	if(numberTimesSampled>=minNumberTimesSampled) enoughData=true;
 	else enoughData=false;
@@ -297,36 +338,37 @@ vector<double> basisSlot::bareBasisSampledCoeffs() const
 	return result;
 	}
 
-void basisSlot::printSlotInfo() const
+std::ostream& basisSlot::printSlotInfo(std::ostream& strm) const
 	{
-	bounds.printBoundsInfo();
-	cout << "totalNumOfBasisFn = " << totalNumOfBasisFn << endl;
+        bounds.printBoundsInfo(strm, VERBOSE);
+	strm << "totalNumOfBasisFn = " << totalNumOfBasisFn << endl;
+        return strm;
 	}
 
 
-void basisSlot::printGramSchmidtCoeffs() const
+void basisSlot::printGramSchmidtCoeffs(std::ostream& strm) const
 	{
 	for(int i=0; i<totalNumOfBasisFn; i++)
 		{
 		for(int j=0; j<totalNumOfBasisFn; j++)
 			{
-			cout << fixed << setprecision(12) << GramSchmidtCoeffs[i][j] << '\t';
+			strm << fixed << setprecision(12) << GramSchmidtCoeffs[i][j] << '\t';
 			}
-		cout << endl;
+		strm << endl;
 		}
 	}
 
-void basisSlot::printSampledCoeffs() const
+void basisSlot::printSampledCoeffs(std::ostream& strm) const
 	{
-	cout << integral << '\t' << variance << '\t' << numberTimesSampled << endl;
-	for(int i=0; i<totalNumOfBasisFn; i++) cout << sampledCoeffsValues[i] << '\t' << sampledCoeffsVariance[i] << endl;
+	strm << integral << '\t' << variance << '\t' << numberTimesSampled << endl;
+	for(int i=0; i<totalNumOfBasisFn; i++) strm << sampledCoeffsValues[i] << '\t' << sampledCoeffsVariance[i] << endl;
 	}
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
 taylorSlot::taylorSlot(slotBounds theBounds, int theTotalNumOfBasisFn) : basisSlot(theBounds, theTotalNumOfBasisFn)
 	{
-	if(theBounds.getIsInfinite()==true) {cout << "ERROR: trying to initialize Taylor expansion slot with open bounds" << endl; exit(EXIT_FAILURE);}
+	if(theBounds.getIsInfinite()==true) {cerr << "ERROR: trying to initialize Taylor expansion slot with open bounds" << endl; throw std::runtime_error("ERROR: trying to initialize Taylor expansion slot with open bounds");}
 	initializeGramSchmidt();
 	}
 
@@ -351,7 +393,13 @@ double taylorSlot::GramSchmidtBasisFn(int numOfBasisFn, double variable) const
 	if(abs(shiftedvariable)>1)
 		{
 		if(isAround(abs(shiftedvariable),1)) {if(shiftedvariable>1) shiftedvariable=1; else shiftedvariable=-1;}
-		else {cout << "ERROR: wrong variable in taylorSlot; variable = " << variable << ", number basis function = " << numOfBasisFn << endl; printSlotInfo(); exit(EXIT_FAILURE);}
+		else {
+                    std::cerr << "ERROR: wrong variable in taylorSlot; variable = " << variable
+                              << ", number basis function = " << numOfBasisFn
+                              << endl;
+                    printSlotInfo(std::cerr);
+                    throw std::runtime_error("ERROR: wrong variable in taylorSlot");
+                }
 		}
 	
 	return sqrt(2*numOfBasisFn+1)*gsl_sf_legendre_Pl (numOfBasisFn, shiftedvariable)/sqrt(bounds.slotWidth());
@@ -369,7 +417,7 @@ double taylorSlot::pairwiseIntegral(int numOfBasisFn1, int numOfBasisFn2) const
 
 sqrtSlot::sqrtSlot(slotBounds theBounds, int theTotalNumOfBasisFn) : basisSlot(theBounds, theTotalNumOfBasisFn)
 	{
-	if(theBounds.getIsInfinite()==true) {cout << "ERROR: trying to initialize square root expansion slot with open bounds" << endl; exit(EXIT_FAILURE);}
+	if(theBounds.getIsInfinite()==true) {cerr << "ERROR: trying to initialize square root expansion slot with open bounds" << endl; throw std::runtime_error("ERROR: trying to initialize square root expansion slot with open bounds");}
 	initializeGramSchmidt();
 	}
 

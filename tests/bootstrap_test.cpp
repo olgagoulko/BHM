@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "histogram.hpp"
 #include "spline.hpp"
 #include "basic.hpp"
@@ -109,25 +128,24 @@ int main(int argc, char **argv) {
 			}
 		histogramBasis scaledBasisHistogram = combinedBasisHistogram.scaledHistogram(samplingSteps);
 		
-		double threshold=2;
+		fitAcceptanceThreshold threshold; threshold.min=2; threshold.max=6; threshold.steps=4;
+		BHMparameters theParameters;
+		theParameters.dataPointsMin=100;
+		theParameters.splineOrder=4;
+		theParameters.minLevel=2;
+		theParameters.threshold=threshold;
+		theParameters.usableBinFraction=0.25;
+		theParameters.jumpSuppression=0;
+		
 		bool acceptance;
 		vector< double > dummy;
 		splineArray theBHMfit;
 		
 		if(round==bootstrapSamples)
 			{
-			theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
+			theBHMfit = combinedHistogram.BHMfit(theParameters, samplingSteps, false);
 			acceptance=theBHMfit.getAcceptance();
 			//if(theBHMfit.numberKnots()>10) acceptance=false;
-
-			while(acceptance==false)
-				{
-				threshold+=1;
-				theBHMfit = combinedHistogram.BHMfit(4, 2, samplingSteps, threshold, 0);
-				acceptance=theBHMfit.getAcceptance();
-				//if(theBHMfit.numberKnots()>10) acceptance=false;
-				if(threshold>5) break;
-				}
 			
 			intervalBounds=theBHMfit.getBounds();
 			
@@ -140,8 +158,8 @@ int main(int argc, char **argv) {
 			}
 		else
 			{
-			vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps);
-			theBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, 4, 0, dummy, dummy);
+			vector< vector< basisSlot* > > currentAnalysisBins=combinedHistogram.binHierarchy(samplingSteps, theParameters.dataPointsMin, theParameters.usableBinFraction);
+			theBHMfit = matchedSplineFit(currentAnalysisBins, intervalBounds, theParameters.splineOrder, theParameters.jumpSuppression, dummy, dummy, threshold.min);
 			acceptance=true;//theBHMfit.checkOverallAcceptance(threshold);
 			if( acceptance ) numberOfGoodFits++;
 			
@@ -178,7 +196,7 @@ int main(int argc, char **argv) {
 			}
 		output << endl; output << endl;
 		
-		cout << "fit info: " << theBHMfit.getAcceptance() << '\t' << threshold << '\t' << theBHMfit.numberKnots() << endl;
+		cout << "fit info: " << theBHMfit.getAcceptance() << '\t' << theBHMfit.getThreshold() << '\t' << theBHMfit.numberKnots() << endl;
 		}
 	
 	vector<splinePiece*> theBootstrapSplines;
@@ -198,7 +216,7 @@ int main(int argc, char **argv) {
 
 	splineArray averageBootstrapSpline(theBootstrapSplines);
 	cout << "Average Bootstrap Spline" << endl;
-	averageBootstrapSpline.printSplineArrayInfo(); averageBootstrapSpline.printSplines(); cout << endl;
+	averageBootstrapSpline.printSplineArrayInfo(cout); averageBootstrapSpline.printSplines(cout); cout << endl;
 		
 	for(int i=0; i<numSteps;i++) 
 		{

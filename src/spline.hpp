@@ -1,3 +1,22 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #ifndef SPLINE_HPP
 #define SPLINE_HPP
 
@@ -25,14 +44,14 @@ public:
 	unsigned int getSplineOrder() const {return splineOrder;}
 	slotBounds getBounds() const {return bounds;}
 	
-	bool checkIntervalAcceptance(std::vector< std::vector< basisSlot* > > currentAnalysisBins, double fitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const;
+	bool checkIntervalAcceptance(std::vector< std::vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const;
 	
 	double splineValue(double variable) const;
 	double splineError(double variable) const;
 	double splineIntegral(slotBounds theBounds) const;
 	double splineDerivative(double variable, unsigned int derivativeOrder) const;
 	
-	void printSplinePiece() const;
+	std::ostream& printSplinePiece(std::ostream&, verbosity_level_type verb=VERBOSE) const;
 	
 };
 
@@ -48,7 +67,8 @@ private:
 	std::vector<double> intervalBoundaries;
 	std::vector<double> levelsChiSquared;
 	std::vector<int> levelsDegreesOfFreedom;
-	bool accetableSpline;
+	double currentThreshold;
+	bool acceptableSpline;
 	
 public:
 	
@@ -59,20 +79,24 @@ public:
 	splineArray (const splineArray& toBeCopied);
 	
 	void updateLevelProperties(std::vector<double> theChisq, std::vector<int> theDOF);
-	void updateGoodness(bool acceptable);
+	void updateGoodness(bool acceptable, double threshold);
 	
 	splinePiece * getSplinePiece(unsigned int whichPiece) const;
-	bool getAcceptance() const {return accetableSpline;}
-	bool checkOverallAcceptance(double fitAcceptanceThreshold) const;
+	bool getAcceptance() const {return acceptableSpline;}
+	double getThreshold() const {return currentThreshold;}
+	bool checkOverallAcceptance(double currentFitAcceptanceThreshold) const;
 	std::vector<slotBounds> getBounds() const;
 	int numberKnots() const {return intervalBoundaries.size();}
 	
 	double splineValue(double variable) const;
 	double splineError(double variable) const;
 	double splineDerivative(double variable, unsigned int derivativeOrder) const;
-	
-	void printSplineArrayInfo() const;
-	void printSplines() const;
+
+        double getLowerBound() const { return lowerBound; }
+        double getUpperBound() const { return upperBound; }
+    
+        std::ostream& printSplineArrayInfo(std::ostream&) const;
+        std::ostream& printSplines(std::ostream&) const;
 	
 };
 

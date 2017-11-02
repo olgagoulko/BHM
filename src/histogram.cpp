@@ -1,20 +1,43 @@
+/*** LICENCE: ***
+Bin histogram method for restoration of smooth functions from noisy integrals. Copyright (C) 2017 Olga Goulko
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 USA.
+
+*** END OF LICENCE ***/
 #include "basic.hpp"
 #include "slot.hpp"
 #include "spline.hpp"
 #include "histogram.hpp"
 
+#include <cstdio>
+#include <cassert>
+#include <complex>
+
 using namespace std; 
 
 vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotWidth, int numberOverlaps, int totalNumOfBasisFn)
 	{
-	if(numberOverlaps<1) numberOverlaps = 10;
+	if(numberOverlaps<1) numberOverlaps = 1;
 	
 	if(totalNumOfBasisFn<0) totalNumOfBasisFn=0;
 	
 	if(maxVar<minVar) {double newMin=maxVar; maxVar=minVar; minVar=newMin;}
 	
 	double range = maxVar-minVar;
-	if(range<VERY_SMALL_NUMBER) {cout << "ERROR: sampling interval too small; min = " << minVar << ", max = " << maxVar << ", range = " << range << endl; exit(EXIT_FAILURE);}
+	if(range<VERY_SMALL_NUMBER) {std::cerr << "ERROR: sampling interval too small; min = " << minVar << ", max = " << maxVar << ", range = " << range << endl; throw std::runtime_error("samling interval too small"); }
 	
 	if((slotWidth>range)||(slotWidth<0)) slotWidth=range/double(numberOverlaps);
 	
@@ -57,10 +80,16 @@ vector<basisSlot*> generateBasisSlots(double minVar, double maxVar, double slotW
 	}
 
 
-histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots)
+histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots) : numberOfInboundsSamples(0)
 	{
 	valuesOutsideBounds = new excessBin();
-	lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+        //histogram with zero basis slots is permitted
+	if(theBasisSlots.size()==0) {lowerBound=0;upperBound=0;}
+        else {
+		lowerBound=(theBasisSlots[0] -> getBounds()).getLowerBound();
+		upperBound=(theBasisSlots[0] -> getBounds()).getUpperBound();
+		}
+        noUpperBound=false;
 	for(unsigned int i=0;i<theBasisSlots.size();i++)
 		{
 		basisSlots.push_back(theBasisSlots[i]);
@@ -69,6 +98,7 @@ histogramBasis::histogramBasis(vector<basisSlot*> theBasisSlots)
 		if(currentBounds.getIsInfinite()) noUpperBound=true;
 		else if(currentBounds.getUpperBound()>upperBound) upperBound=currentBounds.getUpperBound();
 		}
+	normalizationFactor=0;	//corresponds to omitting normalization, or norm=1 in this context
 	}
 
 histogramBasis::~histogramBasis()
@@ -88,7 +118,11 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 		for (vector<basisSlot*>::iterator i = basisSlots.begin(); i != basisSlots.end(); i++ ) delete *i;
 		basisSlots.clear();
 		
-		lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+		if(toBeAssigned.getSize()==0) lowerBound=0;
+		else lowerBound=(toBeAssigned.getSlot(0) -> getBounds()).getLowerBound(); 
+		upperBound=0; noUpperBound=false;
+                numberOfInboundsSamples=toBeAssigned.numberOfInboundsSamples;
+		normalizationFactor=toBeAssigned.normalizationFactor;
 			
 		for (unsigned int i=0;i<toBeAssigned.getSize();i++)
 			{
@@ -104,11 +138,15 @@ histogramBasis& histogramBasis::operator=(const histogramBasis& toBeAssigned)
 	return *this;
 	}
 	
-histogramBasis::histogramBasis(const histogramBasis& toBeCopied)
+histogramBasis::histogramBasis(const histogramBasis& toBeCopied): numberOfInboundsSamples(toBeCopied.numberOfInboundsSamples)
 	{
 	valuesOutsideBounds = new excessBin(toBeCopied.getExcessCounter(),toBeCopied.getExcessValues(1.));
 	
-	lowerBound=(toBeCopied.getSlot(0) -> getBounds()).getLowerBound(); upperBound=0; noUpperBound=false;
+	if(toBeCopied.getSize()==0) lowerBound=0;
+	else lowerBound=(toBeCopied.getSlot(0) -> getBounds()).getLowerBound(); 
+	upperBound=0; noUpperBound=false;
+	
+	normalizationFactor=toBeCopied.normalizationFactor;
 	
 	for (unsigned int i=0;i<toBeCopied.getSize();i++)
 		{
@@ -123,9 +161,82 @@ histogramBasis::histogramBasis(const histogramBasis& toBeCopied)
 	}
 
 
+namespace {
+    /// convenience class to hold histogram line
+    struct hist_line_s {
+        unsigned long nhits;
+        double xmin, avg, m2;
+        
+        hist_line_s(): nhits(), xmin(), avg(1.0), m2(0.0) {}
+
+        /// reads a line with 1..4 numbers from the stream; returns number of values read, or -1 on read error
+        int read(std::istream& istrm, std::string& linebuf)
+        {
+            if (!std::getline(istrm, linebuf)) return -1;
+            int count=std::sscanf(linebuf.c_str(), "%lf %lu %lf %lf",
+                                  &xmin, &nhits, &avg, &m2);
+            return count;
+        }
+    };
+}
+
+histogramBasis::histogramBasis(std::istream& istrm) : valuesOutsideBounds(0),
+                                                      lowerBound(0), upperBound(0),
+                                                      noUpperBound(false),
+                                                      basisSlots(), numberOfInboundsSamples(0), normalizationFactor(0)
+{
+    try {
+        std::string linebuf; // mostly for diagnostics
+        hist_line_s histline;
+
+        // first line must contain 2 numbers
+        if (histline.read(istrm, linebuf)!=2) {
+            throw InvalidFileFormatError("Invalid or empty first line:\n>"+linebuf);
+        }
+        valuesOutsideBounds=new excessBin(histline.nhits, histline.xmin);	//histline.xmin is a dummy
+	normalizationFactor=histline.xmin;
+        
+        // second line must contain 4 or 2 numbers
+	int ndata2=histline.read(istrm, linebuf);
+	if ( (ndata2!=4) && (ndata2!=2) ) {
+            throw InvalidFileFormatError("Invalid or empty second line:\n>"+linebuf);
+        }
+        lowerBound=histline.xmin;
+        upperBound=histline.xmin;
+    
+        for ( ; ; ) {
+            hist_line_s histline_next; // this is the "next" (or the "last" (truncated)) histogram line
+            int ndata=histline_next.read(istrm, linebuf);
+            if (ndata==-1) throw InvalidFileFormatError("Unexpected EOF");
+            if (ndata==0 || ndata==3 || ndata>4) throw InvalidFileFormatError("Invalid input line:\n>"+linebuf);
+
+            if (histline_next.xmin <= histline.xmin) throw OverlappingSlot("Invalid input line:\n>"+linebuf);
+
+            slotBounds bounds=slotBounds(histline.xmin, histline_next.xmin);
+            basisSlot* slot_ptr=new basisSlot(bounds, histline.nhits, histline.avg, histline.m2);
+            appendSlot(slot_ptr);
+        
+            if (ndata==1) {
+                break;
+            }
+            histline=histline_next;
+
+        }
+        if (!(numberOfInboundsSamples>0)) throw InvalidFileFormatError("No data points");
+    } catch (...) {
+        // FIXME: This is a very bad design, but better than leaking memory;
+        // FIXME: `valuesOutsideBounds` should not be a raw pointer (or a pointer at all, for that matter!)
+        // FIXME: and a proper RAII approach should be used instead.
+        delete valuesOutsideBounds;
+        throw;
+    }
+}
+
+
 void histogramBasis::appendSlot(basisSlot* theSlot)
 	{
 	basisSlots.push_back(theSlot);
+        numberOfInboundsSamples += theSlot->getNumberTimesSampled();
 	if((theSlot -> getBounds()).getLowerBound()<lowerBound) lowerBound=(theSlot -> getBounds()).getLowerBound();
 	if((theSlot -> getBounds()).getIsInfinite()) noUpperBound=true;
 	else if((theSlot -> getBounds()).getUpperBound()>upperBound) upperBound=(theSlot -> getBounds()).getUpperBound();
@@ -133,7 +244,7 @@ void histogramBasis::appendSlot(basisSlot* theSlot)
 
 basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int endPoint) const
 	{
-	if((startPoint>endPoint) || (endPoint>=basisSlots.size())) {cout << "ERROR in combinedSlot" << endl; exit(EXIT_FAILURE);}
+            if((startPoint>endPoint) || (endPoint>=basisSlots.size())) {std::cerr << "ERROR in combinedSlot" << endl; throw std::runtime_error("ERROR in combinedSlot"); }
 	else if(startPoint>endPoint) {unsigned int save=endPoint; endPoint=startPoint; startPoint=save;}
 	
 	for(unsigned int i=startPoint;i<=endPoint;i++)
@@ -142,9 +253,9 @@ basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int en
 			{
 			if((basisSlots[i] -> getBounds()).overlapping((basisSlots[j] -> getBounds()))) 
 				{
-				cout << "ERROR: trying to combine overlapping slots " << i << " and " << j << endl; 
-				basisSlots[i] -> printSlotInfo(); basisSlots[j] -> printSlotInfo();
-				exit(EXIT_FAILURE);
+				cerr << "ERROR: trying to combine overlapping slots " << i << " and " << j << endl; 
+				basisSlots[i] -> printSlotInfo(cerr); basisSlots[j] -> printSlotInfo(cerr);
+				throw std::logic_error("ERROR: trying to combine overlapping slots");
 				}
 			}
 		}
@@ -161,7 +272,7 @@ basisSlot* histogramBasis::combinedSlot(unsigned int startPoint, unsigned int en
 
 basisSlot* histogramBasis::getSlot(unsigned int whichSlot) const
 	{
-	if(whichSlot>=basisSlots.size()) {cout << "ERROR in getSlot, " << whichSlot << " does not exist" << endl; exit(EXIT_FAILURE);}
+            if(whichSlot>=basisSlots.size()) {cerr << "ERROR in getSlot, " << whichSlot << " does not exist" << endl; throw std::runtime_error("Error in getSlot");}
 	return basisSlots[whichSlot];
 	}
 
@@ -171,23 +282,32 @@ void histogramBasis::sample(double variable, double valueToSample)
 	bool isOutsideBounds=true;
 	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
-		if( basisSlots[i] -> checkIfInBasisSlot(variable) ) {basisSlots[i] -> sample(variable,valueToSample); isOutsideBounds=false;}
+		    if( basisSlots[i] -> checkIfInBasisSlot(variable) )
+                        {
+                            basisSlots[i] -> sample(variable,valueToSample); isOutsideBounds=false;
+                        }
 		}
-	if(isOutsideBounds) valuesOutsideBounds -> sample(variable, valueToSample);
+	if(isOutsideBounds)
+            {
+                valuesOutsideBounds -> sample(variable, valueToSample);
+            } else {
+                ++numberOfInboundsSamples;
+            }
 	}
 
 void histogramBasis::sampleUniform(double variable, double valueToSample)
 	{
 	//faster sampling, assuming all slots are of equal width, without overlaps
-	if(variable > upperBound || variable < lowerBound) valuesOutsideBounds -> sample(variable, valueToSample);
+	if(variable > upperBound || variable < lowerBound || basisSlots.size()==0) valuesOutsideBounds -> sample(variable, valueToSample);
 	else 
 		{
 		basisSlots[int((variable-lowerBound)/((basisSlots[0] -> getBounds()).slotWidth()))] -> sample(variable,valueToSample);
+                ++numberOfInboundsSamples;
 		}
 	}
 
 
-histogramBasis histogramBasis::coarseGrainedHistogram(int minNumberTimesSampled)
+histogramBasis histogramBasis::coarseGrainedHistogram(unsigned int minNumberTimesSampled)
 	{
 	vector<basisSlot*> coarseGrainedSlots;
 	unsigned int counter=0; bool enough;
@@ -305,7 +425,7 @@ histogramBasis histogramBasis::scaledHistogram(long norm)
 		scaledSlots.push_back(currentSlot);
 		}
 	
-	histogramBasis result(scaledSlots);
+	histogramBasis result(scaledSlots); //FIXME: do these histograms have the right parameters otherwise?
 	return result;
 	}
 
@@ -315,11 +435,11 @@ histogramBasis histogramBasis::normalizedHistogram(double norm)
 	for(unsigned int i=0;i<basisSlots.size();i++)
 		{
 		basisSlot* currentSlot = basisSlots[i] -> Clone();
-		currentSlot -> normalize(norm);
+		if( (norm>0) && (norm!=1) ) currentSlot -> normalize(norm);
 		scaledSlots.push_back(currentSlot);
 		}
 	
-	histogramBasis result(scaledSlots);
+	histogramBasis result(scaledSlots);//FIXME: do these histograms have the right parameters otherwise?
 	return result;
 	}
 
@@ -338,13 +458,17 @@ bool histogramBasis::addAnotherHistogram(histogramBasis anotherHistogram)
 	}
 
 
-vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
+vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm, unsigned int dataPointsMin, double usableBinFraction)
 	{
 	unsigned int numberElementaryBins = basisSlots.size();
 	unsigned int maxLevel=rounding(log(double(numberElementaryBins))/log(2));
 	vector< vector<basisSlot*> > analysisBins;
 	vector<basisSlot*> currentLevelBins;
-	for(unsigned int i=0;i<numberElementaryBins;i++) {basisSlots[i] -> updateEnoughSampled(); currentLevelBins.push_back(basisSlots[i] -> Clone());}
+	for(unsigned int i=0;i<numberElementaryBins;i++)
+		{
+		basisSlots[i] -> updateEnoughSampled(dataPointsMin);
+		currentLevelBins.push_back(basisSlots[i] -> Clone());
+		}
 	for(unsigned int j=0;j<=maxLevel;j++)
 		{
 		analysisBins.insert(analysisBins.begin(),currentLevelBins);
@@ -357,7 +481,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 			basisSlot * combined = new basisSlot(theBounds);
 			combined -> combineWithSlot(analysisBins[0][i]);
 			combined -> combineWithSlot(analysisBins[0][i+1]);
-			combined -> updateEnoughSampled();
+			combined -> updateEnoughSampled(dataPointsMin);
 			currentLevelBins.push_back(combined);
 			}
 		}
@@ -372,7 +496,7 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 			if(analysisBins[j][i] -> enoughSampled()) analysisBins[j][i] -> scale(norm);
 			else analysisBins[j].erase(analysisBins[j].begin()+i);
 			}
-		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize/4) || (analysisBins[j].size()==0)) 
+		if( (analysisBins[j].size()<initialAnalysisBinsLevelSize*usableBinFraction) || (analysisBins[j].size()==0))
 			{
 			breakPoint=j; break;
 			}
@@ -384,102 +508,148 @@ vector< vector< basisSlot* > > histogramBasis::binHierarchy(long norm)
 	}
 
 
-splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLevel, long norm, double fitAcceptanceThreshold, double jumpSuppression)
+splineArray histogramBasis::BHMfit(BHMparameters parameters, long norm, bool fail_if_zero)
 	{
-	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
+	unsigned int splineOrder=parameters.splineOrder;
+	unsigned int minLevel=parameters.minLevel;
+	fitAcceptanceThreshold theThreshold=parameters.threshold;
+	double usableBinFraction=parameters.usableBinFraction;
+	double jumpSuppression=parameters.jumpSuppression;
+		
+	if(splineOrder<1) {
+            // rationale: it's caller's job to check parameters and issue warning to an appropriate log
+            // here we simply bail out if the input is wrong.
+            throw std::invalid_argument("BHMfit(): splineOrder must be at least 1");
+        }
 		
 	vector<double> aMaxVector; vector<double> chisqArray;
 	
 	if(minLevel<2) minLevel=2;
-	unsigned int currentLevel=minLevel;
-	unsigned int maxLevel=rounding(log(double(basisSlots.size()))/log(2));
-	if(pow(2,maxLevel)!=basisSlots.size()) {cout << "Number of elementary bins is not a power of 2" << endl; exit(EXIT_FAILURE);}
+        int maxLevel=ilog2(basisSlots.size());
+        if (maxLevel<0) {
+            // rationale: it's caller's responsibility to check this precondition
+            throw std::invalid_argument("Number of elementary bins is not a power of 2");
+        }
 	
 	//make bin hierarchy; position in outer vector denotes bin level: 0 is largest bin, 1 are second level bins etc
 	//intervals labeled in the same way: as a sequence 0 or 11 or 221 or 2331 etc
-	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm); //the bins on each given level don't have to be in order, only analysisBins do
+	vector< vector<basisSlot*> > analysisBins=binHierarchy(norm, parameters.dataPointsMin, usableBinFraction); //the bins on each given level don't have to be in order, only analysisBins do
 
-	if(analysisBins.size()<minLevel) {cout << "Not enough data for meaningful analysis" << endl; exit(EXIT_FAILURE);}
-	if(isDataConsistentWithZero(analysisBins)==true) cout << "Data is consistent with zero on the interval" << endl;
-		
+	if(analysisBins.size()<minLevel) {
+            // rationale: hard to be checked by caller, but no meaningful spline can be created
+            throw NotEnoughData_Error();
+        }
+
+	if(isDataConsistentWithZero(analysisBins)==true) {
+            LOGGER << "WARNING: Data is consistent with zero on the interval";
+            // rationale: we have to throw here because the return object is not going to be (meaningfully) constructed
+            if (fail_if_zero) throw ConsistentWithZero_Error();
+        }
+	
+	bool allSplinesGood; bool checkIntervals;
 	vector<slotBounds> intervalBounds;
 	vector<unsigned int> intervalOrders;
-	vector<unsigned int> intervalNumbers;
-	slotBounds histogramBounds(lowerBound,upperBound);
-	intervalBounds.push_back(histogramBounds);
-	unsigned int currentNumberIntervals;
-	intervalOrders.push_back(0); intervalNumbers.push_back(0);
-
-	bool allSplinesGood; bool checkIntervals;
-	while(currentLevel<analysisBins.size()-1)
+	double thresholdIncrease=0;
+	if(theThreshold.max<=theThreshold.min) theThreshold.steps=0;
+	if(theThreshold.steps>0) thresholdIncrease=(theThreshold.max-theThreshold.min)/double(theThreshold.steps);
+	double currentFitAcceptanceThreshold;
+	for(int thresholdStep=0; thresholdStep<=theThreshold.steps; thresholdStep++)
 		{
-		splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+		currentFitAcceptanceThreshold=theThreshold.min+thresholdStep*thresholdIncrease;
+		LOGGER << "Begin BHM fitting with threshold T = " << currentFitAcceptanceThreshold;
+		
+		intervalBounds.resize(0);
+		intervalOrders.resize(0);
+		vector<unsigned int> intervalNumbers;
+		slotBounds histogramBounds(lowerBound,upperBound);
+		intervalBounds.push_back(histogramBounds);
+		unsigned int currentNumberIntervals;
+		intervalOrders.push_back(0); intervalNumbers.push_back(0);
+		unsigned int currentLevel=minLevel;
 
-		if(result.checkOverallAcceptance(fitAcceptanceThreshold)!=true) checkIntervals=true;
-		else checkIntervals=false;
-		
-		currentNumberIntervals=intervalBounds.size();
-		bool isIntervalGood[currentNumberIntervals];
-		allSplinesGood=true;
-		chisqArray.resize(0);
-		for(unsigned int i=0;i<currentNumberIntervals;i++)
+		while(currentLevel<analysisBins.size()-1)
 			{
-			if(checkIntervals) cout << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")" << endl;
-			double chisqArrayElement = 1+fitAcceptanceThreshold*sqrt(2.);
-			bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
-			chisqArray.push_back(chisqArrayElement);
-		
-			if(checkIntervals)
-				{
-				if(currentSplineGood==false) allSplinesGood=false;
-				isIntervalGood[i]=currentSplineGood;
-				}
-			}
-				
-		if(checkIntervals)
-			{
-			unsigned int intervalCounter=0;
+			splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
+
+			if(result.checkOverallAcceptance(currentFitAcceptanceThreshold)!=true) checkIntervals=true;
+			else checkIntervals=false;
+			
+			currentNumberIntervals=intervalBounds.size();
+			bool isIntervalGood[currentNumberIntervals];
+			allSplinesGood=true;
+			chisqArray.resize(0);
 			for(unsigned int i=0;i<currentNumberIntervals;i++)
 				{
-				if(!isIntervalGood[i])
+				if(checkIntervals) LOGGER << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")";
+				double chisqArrayElement = 1+currentFitAcceptanceThreshold*sqrt(2.);
+				bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
+				chisqArray.push_back(chisqArrayElement);
+			
+				if(checkIntervals)
 					{
-					intervalOrders[intervalCounter]++;
-					intervalOrders.insert(intervalOrders.begin()+intervalCounter+1,intervalOrders[intervalCounter]);
-					intervalNumbers[intervalCounter]*=2;
-					intervalNumbers.insert(intervalNumbers.begin()+intervalCounter+1,intervalNumbers[intervalCounter]+1);
+					if(currentSplineGood==false) allSplinesGood=false;
+					isIntervalGood[i]=currentSplineGood;
+					}
+				}
+					
+			if(checkIntervals)
+				{
+				unsigned int intervalCounter=0;
+				for(unsigned int i=0;i<currentNumberIntervals;i++)
+					{
+					if(!isIntervalGood[i])
+						{
+						intervalOrders[intervalCounter]++;
+						intervalOrders.insert(intervalOrders.begin()+intervalCounter+1,intervalOrders[intervalCounter]);
+						intervalNumbers[intervalCounter]*=2;
+						intervalNumbers.insert(intervalNumbers.begin()+intervalCounter+1,intervalNumbers[intervalCounter]+1);
+						intervalCounter++;
+						}
 					intervalCounter++;
 					}
-				intervalCounter++;
+				
+				intervalBounds.resize(0);
+				for(unsigned int i=0;i<intervalOrders.size();i++)
+					{
+					slotBounds currentBounds( (basisSlots[pow(2,maxLevel-intervalOrders[i])*intervalNumbers[i]] -> getBounds()).getLowerBound(), (basisSlots[pow(2,maxLevel-intervalOrders[i])*(intervalNumbers[i]+1)-1] -> getBounds()).getUpperBound());
+				
+					intervalBounds.push_back(currentBounds);
+					}
 				}
 			
-			intervalBounds.resize(0);
-			for(unsigned int i=0;i<intervalOrders.size();i++)
+			if(allSplinesGood)
 				{
-				slotBounds currentBounds( (basisSlots[pow(2,maxLevel-intervalOrders[i])*intervalNumbers[i]] -> getBounds()).getLowerBound(), (basisSlots[pow(2,maxLevel-intervalOrders[i])*(intervalNumbers[i]+1)-1] -> getBounds()).getUpperBound());
-			
-				intervalBounds.push_back(currentBounds);
+				LOGGER << "Good spline found with threshold T = " << currentFitAcceptanceThreshold;
+				break;
 				}
+			currentLevel++;
 			}
-		
-		if(allSplinesGood) {cout << "Good spline found!" << endl; cout << endl; break;}
-		currentLevel++;
-		cout << endl;
+		if(allSplinesGood) break;
 		}
+
+	if(!allSplinesGood)
+                {
+                    jumpSuppression=0;
+                    LOGGER << "No acceptable fit could be found with the current threshold "
+                           << currentFitAcceptanceThreshold;
+                }
+	else if(intervalBounds.size()==1)
+                {
+                    jumpSuppression=0; //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
+                    LOGGER << "No knots for jump suppression";
+                } 
 	
-	if(!allSplinesGood) {jumpSuppression=0; cout << "No acceptable fit could be found with the current threshold " << fitAcceptanceThreshold << endl;}
-	if(intervalBounds.size()==1) {jumpSuppression=0; cout << "No knots for jump suppression" << endl;} //current setup is not to constrain highest derivate at domain boundaries, only at spline knots
-	
-	/**/if(jumpSuppression>0)
+	if(jumpSuppression>0)
 		{
+		LOGGER << "\nIterative consistent constraints procedure\n";
 		aMaxVector.resize(0);
-		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray);
+		splineArray geta3=matchedSplineFit(analysisBins, intervalBounds, splineOrder, 0, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 		for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((geta3.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
-		cout << endl; cout << "Iterative consistent constraints procedure" << endl; cout << endl;
 		}
 	
-	splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
+	splineArray result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 	
-	/**/if(jumpSuppression>0)
+	if(jumpSuppression>0)
 		{
 		for(int repeat=0;repeat<1;repeat++)
 			{
@@ -487,8 +657,11 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 			while(CCprocedureConverged==false)
 				{
 				iterations++;
-				allSplinesGood = result.checkOverallAcceptance(fitAcceptanceThreshold);
-				cout << "Gluing factor " << jumpSuppression << "; the interval fit is "; if(!allSplinesGood) cout << "not "; cout << "good" << endl;
+				allSplinesGood = result.checkOverallAcceptance(currentFitAcceptanceThreshold);
+				LOGGER << "Global suppression factor "
+                                       << jumpSuppression
+                                       << "; the interval fit is "
+                                       << (allSplinesGood? "good" : "not good");
 				
 				if(!allSplinesGood)
 					{
@@ -506,37 +679,56 @@ splineArray histogramBasis::BHMfit(unsigned int splineOrder, unsigned int minLev
 					else jumpSuppression*=2;
 					}
 				
-				result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray);
+				result = matchedSplineFit(analysisBins, intervalBounds, splineOrder, jumpSuppression, aMaxVector, chisqArray, currentFitAcceptanceThreshold);
 				}
-			/**/aMaxVector.resize(0); chisqArray.resize(0);
+			aMaxVector.resize(0); chisqArray.resize(0);
 			for(unsigned int i=0;i<intervalOrders.size();i++) aMaxVector.push_back((result.getSplinePiece(i) -> getCoefficients())[splineOrder-1]);
 			for(unsigned int i=0;i<intervalBounds.size();i++)
 				{
-				double chisqArrayElement=1+fitAcceptanceThreshold*sqrt(2.);
-				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, fitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
+				double chisqArrayElement=1+currentFitAcceptanceThreshold*sqrt(2.);
+				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
 				chisqArray.push_back(chisqArrayElement);
-				}/**/
+				}
 			jumpSuppression=1;
 			}
 		}
-		/**/
 	
 	vector< vector<basisSlot*> >::iterator i;
 	vector<basisSlot*>::iterator j;
 	for (i = analysisBins.begin(); i != analysisBins.end(); i++) for (j = i->begin(); j != i->end(); j++) delete *j;
 	analysisBins.clear();
 
-	result.updateGoodness(allSplinesGood);
+	result.updateGoodness(allSplinesGood, currentFitAcceptanceThreshold);
 	return result;
 	}
 
 
+std::ostream& operator<<(std::ostream& ostrm, const histogramBasis& hist)
+{
+    ostrm << hist.getExcessCounter() << "\n";
+    
+    for(unsigned int i=0; i<hist.getSize(); ++i) 
+    {
+        basisSlot* slot = hist.getSlot(i);
+        ostrm << slot->getBounds().getLowerBound() << '\t'
+              << slot->getNumberTimesSampled() << '\t'
+              << slot->sampledIntegral() << '\t'
+              << slot->getVariance()
+              << '\n';
+    }
+    if (hist.getSize()!=0) { 
+        ostrm << hist.getSlot(hist.getSize()-1)->getBounds().getUpperBound()
+              << endl;
+    }
+    return ostrm;
+}
 
 
-splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, vector<double> aMaxVector, vector<double> chisqArray)
+
+splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, vector< slotBounds > intervalBounds, unsigned int splineOrder, double jumpSuppression, vector<double> aMaxVector, vector<double> chisqArray, double currentFitAcceptanceThreshold)
 	{
-	if(intervalBounds.size()==0) {cout << "ERROR in matchedSplineFit, intervalBounds size is zero" << endl; exit(EXIT_FAILURE);}
-	if(splineOrder<1) {cout << "WARNING: splineOrder has to be at least 1, setting splineOrder to 1" << endl; splineOrder=1;}
+            if(intervalBounds.size()==0) { cerr << "ERROR in matchedSplineFit, intervalBounds size is zero" << endl; throw std::runtime_error("ERROR in matchedSplineFit"); }
+	if(splineOrder<1) {LOGGER << "WARNING: splineOrder has to be at least 0, setting splineOrder to 0"; splineOrder=1;} //splineOrder=m+1
 	
 	unsigned int numberIntervals=intervalBounds.size();
 	unsigned int matrixRows = 0;
@@ -648,7 +840,7 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 			currentMatrixRow++;
 			}
 			
-/**/ if(jumpSuppression>0)
+	if(jumpSuppression>0)
 	{
 	double factor=sqrt(jumpSuppression/double(numberIntervals));
 	for(unsigned int i=0;i<numberIntervals-1;i++) 
@@ -662,7 +854,6 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 	//gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals-1, splineOrder-1, factor*chisqArray[0]/(aMaxVector[0]));
 	//if(numberIntervals>1) gsl_matrix_set(fullDesignMatrix, matrixRows+numberIntervals, splineOrder+numberIntervals-2, factor*chisqArray[numberIntervals-1]/(aMaxVector[numberIntervals-1]));
 	}
-/**/
 	
 	//chi^2 minimization using full design matrix
 	gsl_matrix * V = gsl_matrix_alloc (matrixCols, matrixCols);
@@ -673,8 +864,9 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 
 	currentMatrixRow=0;
 	vector<double> theChisq; vector<int> theDOF;
-	cout << "Checking separate chi_n^2/n in spline fit" << endl;
-	cout << "level" << '\t' << "n" << '\t' << "chi_n^2/n" << '\t' << "sqrt(2/n)" << endl;
+	LOGGER << "Checking separate chi_n^2/n in spline fit\n"
+		<< left << setw(8) << "level" << setw(8) << "n" 
+		<< setw(16) << "chi_n^2/n" << setw(16) << "max chi_n^2/n";
 	for(unsigned int j=0;j < currentAnalysisBins.size();j++)
 		{
 		int dof = currentAnalysisBins[j].size();
@@ -682,7 +874,11 @@ splineArray matchedSplineFit(vector< vector<basisSlot*> > currentAnalysisBins, v
 		double chisq; gsl_blas_ddot (&currentgslb.vector, &currentgslb.vector, &chisq);
 		chisq*=double(pow(2,j))/double(dof);
 		theChisq.push_back(chisq); theDOF.push_back(dof);
-		cout << j << '\t' << dof << '\t' << chisq << '\t' << sqrt(2./double(dof)) << endl;
+	
+		LOGGER << left << fixed << setprecision(4) << setw(8) << j << setw(8) << dof 
+			<< right << setw(9) << chisq << setw(7) << " "
+			<< left << setw(16) << 1+currentFitAcceptanceThreshold*sqrt(2./double(dof));
+	
 		currentMatrixRow+=dof;
 		}
 
