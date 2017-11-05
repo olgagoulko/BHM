@@ -44,7 +44,7 @@ public:
 	unsigned int getSplineOrder() const {return splineOrder;}
 	slotBounds getBounds() const {return bounds;}
 	
-	bool checkIntervalAcceptance(std::vector< std::vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const;
+	bool checkIntervalAcceptance(std::vector< std::vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals, double usableBinFraction) const;
 	
 	double splineValue(double variable) const;
 	double splineError(double variable) const;

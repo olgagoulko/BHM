@@ -582,7 +582,7 @@ splineArray histogramBasis::BHMfit(BHMparameters parameters, long norm, bool fai
 				{
 				if(checkIntervals) LOGGER << "Checking interval " << i << " (order: " << intervalOrders[i] << ", number: " << intervalNumbers[i] << ")";
 				double chisqArrayElement = 1+currentFitAcceptanceThreshold*sqrt(2.);
-				bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals);
+				bool currentSplineGood=result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], checkIntervals, usableBinFraction);
 				chisqArray.push_back(chisqArrayElement);
 			
 				if(checkIntervals)
@@ -686,7 +686,7 @@ splineArray histogramBasis::BHMfit(BHMparameters parameters, long norm, bool fai
 			for(unsigned int i=0;i<intervalBounds.size();i++)
 				{
 				double chisqArrayElement=1+currentFitAcceptanceThreshold*sqrt(2.);
-				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false);
+				result.getSplinePiece(i) -> checkIntervalAcceptance(analysisBins, currentFitAcceptanceThreshold, chisqArrayElement, intervalOrders[i], false, usableBinFraction);
 				chisqArray.push_back(chisqArrayElement);
 				}
 			jumpSuppression=1;

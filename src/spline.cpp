@@ -41,7 +41,7 @@ void splinePiece::setSplinePiece(vector< double > theCoefficients, vector< doubl
 	}
 
 
-bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals) const
+bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > currentAnalysisBins, double currentFitAcceptanceThreshold, double chisqArrayElement, unsigned int intervalOrder, bool checkIntervals, double usableBinFraction) const
 	{
 	bool currentSplineGood=true;
 	if(intervalOrder>currentAnalysisBins.size())
@@ -64,7 +64,7 @@ bool splinePiece::checkIntervalAcceptance(vector< vector< basisSlot* > > current
 				}
 			}
 		
-		if(numberSlotsAtCurrentLevel>pow(2,j)/2.)
+		if( (numberSlotsAtCurrentLevel>=pow(2,j)*usableBinFraction) && (numberSlotsAtCurrentLevel>0) )
 			{
 			currentChisq*=1./double(numberSlotsAtCurrentLevel);
 			double delta=1+currentFitAcceptanceThreshold*sqrt(2./double(numberSlotsAtCurrentLevel))-currentChisq; if(delta<0) delta=0;
