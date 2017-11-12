@@ -1,0 +1,4 @@
+Whenever scientific publications result from projects using BHM, we kindly ask for a citation to the paper describing the method:
+
+O. Goulko, N. Prokof'ev, B. Svistunov, "Restoring a smooth function from its noisy integrals", arXiv:1707.07625
+https://arxiv.org/abs/1707.07625
