@@ -2,3 +2,8 @@ Whenever scientific publications result from projects using BHM, we kindly ask f
 
 O. Goulko, N. Prokof'ev, B. Svistunov, "Restoring a smooth function from its noisy integrals", arXiv:1707.07625
 https://arxiv.org/abs/1707.07625
+
+and to the paper describing the code implementation:
+
+O. Goulko, A. Gaenko, E. Gull, N. Prokof'ev, B. Svistunov, "Implementation of the Bin Hierarchy Method for restoring a smooth function from a sampled histogram", arXiv:1711.04316
+https://arxiv.org/abs/1711.04316
