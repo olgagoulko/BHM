@@ -31,7 +31,7 @@ namespace logger {
     class LogLine {
       private:
         std::stringstream stream_;
-        std::ostream& out_;
+        std::ostream* out_ptr_;
 
         // this trick ensures that static `verbosity` variable is always initialized
         static int* verbosity_ptr_() {
@@ -39,23 +39,35 @@ namespace logger {
             return &verbosity;
         }
 
+        // this trick ensures that static `stream` variable is always initialized
+        static std::ostream*& default_ostream_ptr_() {
+            static std::ostream* stream_ptr=0;
+            return stream_ptr;
+        }
+
+
       public:
-        LogLine(std::ostream& out = std::cout) : out_(out) {}
+        LogLine() : out_ptr_(default_ostream_ptr_()) {}
+        LogLine(std::ostream& strm) : out_ptr_(&strm) {}
 
         ~LogLine() { // destructor does printing
             if (*verbosity_ptr_()==0) return;
+            if (!out_ptr_) return;
+
             stream_ << "\n";
-            out_ << stream_.rdbuf(); // copy the string stream to the output stream
-            out_.flush();
+            *out_ptr_ << stream_.rdbuf(); // copy the string stream to the output stream
+            out_ptr_->flush();
         }
 
         static void set_verbosity(int verb) { *verbosity_ptr_()=verb; }
-        
+        static void set_output_stream(std::ostream& ostrm) { default_ostream_ptr_()=&ostrm; }
+
         template <class T>
         LogLine& operator<<(const T& val) { stream_ << val; return *this; }
     };
 }
 #define LOGGER logger::LogLine()
 #define LOGGER_VERBOSITY(v) logger::LogLine::set_verbosity(v)
+#define LOGGER_OUTPUT(s) logger::LogLine::set_output_stream(s)
 
 #endif /* BHM_SRC_LOGGER_HPP_6379cafa8eb74c1aaaca0a8fe9caad93 */

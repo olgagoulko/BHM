@@ -53,9 +53,11 @@ static void logger_verbose()
 int main(int argc, char **argv)
 {
     sput_start_testing();
-	
+
     sput_enter_suite("test_logger");
 
+    LOGGER << "Default stream output: THIS LINE SHOULD NOT BE VISIBLE";
+    LOGGER_OUTPUT(std::cout);
     LOGGER << "Default verbosity: THIS LINE SHOULD NOT BE VISIBLE";
 
     sput_run_test(logger_macro);
