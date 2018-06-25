@@ -55,7 +55,7 @@ int Main(int argc, char **argv) {
         if (argv[1][0]!='\0') {
             par.load(argv[1]); // can throw
         }
-        
+
         std::string outfile_name=par.get(":OutputName","");
 	std::ofstream outfile_stream;
         bool default_verbose=false;
@@ -71,24 +71,27 @@ int Main(int argc, char **argv) {
 
         std::ostream& outfile=*(outfile_name.empty()? &std::cout : &outfile_stream);
         bool verbose=par.get(":verbose",default_verbose);
+        // If no output name, logging should go to stderr, otherwise stdout
+        std::ostream& logstream=*(outfile_name.empty()? &std::clog : &std::cout);
 
+        LOGGER_OUTPUT(logstream);
         LOGGER_VERBOSITY(verbose);
 
         LOGGER << "--------------------------- BHM fit -----------------------------";
-        
+
 	unsigned int dataPointsMin=par.get(":DataPointsMin", 100);
 	if (dataPointsMin<10) {
 		std::cerr << "Warning: DataPointsMin too small, resetting it to 10";
 		dataPointsMin=10;
 	}
-	
+
         int splinePolynomialOrder=par.get(":SplineOrder", 3);
         if (splinePolynomialOrder<0) {
             std::cerr << "Polynomial order cannot be less than 0" << std::endl;
             return BAD_ARGS;
         }
         unsigned int splineOrder=splinePolynomialOrder+1; // number of polynomial coefficients
-        
+
 	unsigned int minLevel=par.get(":MinLevel", 2);
 	if(splineOrder >= pow(2,minLevel+1)-1) {
 		std::cerr << "Warning: Spline order too high for given MINLEVEL, resetting to defaults";
@@ -105,7 +108,7 @@ int Main(int argc, char **argv) {
 	threshold.steps=par.get(":THRESHOLDSTEPS", 0);	//if steps==0 only use min threshold value, ignore max
 	if(threshold.max<=threshold.min) threshold.steps=0;
 	if(threshold.steps<0) threshold.steps=0;
-	
+
 	double usableBinFraction=par.get(":UsableBinFraction",0.25);
 	if (usableBinFraction>1) {
 		std::cerr << "Warning: UsableBinFraction cannot be larger than 1, resetting it to default value 0.25";
@@ -133,7 +136,6 @@ int Main(int argc, char **argv) {
         }
         std::istream& infile = *(infile_name.empty()? &std::cin : &infile_stream);
 
-        
         const std::string grid_name=par.get(":GridOutput", "");
 	unsigned int grid_points=par.get(":GridPoints", 1024);
         std::ofstream grid_outfile;
@@ -149,11 +151,11 @@ int Main(int argc, char **argv) {
 	    }
         }
 
-        
+
         histogramBasis binHistogram(infile);
-        
+
         if (!infile_name.empty()) infile_stream.close();
-     
+
 	unsigned int histogramPower=(unsigned int)ilog2(binHistogram.getSize());
         if (ilog2(binHistogram.getSize())<0) {
             std::cerr << "Number of bins (" << binHistogram.getSize()
@@ -169,12 +171,12 @@ int Main(int argc, char **argv) {
 		std::cerr << "Warning: MINLEVEL too large for histogram size, resetting it to 2";
 		minLevel=2;
 	}
-	
+
 	if(binHistogram.getNumberOfSamples()<dataPointsMin) { //this is still very few data points
 		std::cerr << "Not enough sampled data points (" << binHistogram.getNumberOfSamples() << ") in histogram" << std::endl;
 		return BAD_DATA;
 	}
-        
+
         LOGGER << std::boolalpha
                << "Input parameters:\n"
 	       << left << setw(20) << "DataPointsMin = " << left << setw(20) << dataPointsMin 	<< " # minimal number of data points per bin\n"
@@ -201,7 +203,7 @@ int Main(int argc, char **argv) {
                << setw(20) << "\nUpper bound: " << binHistogram.getUpperBound() << "\n";
 
         LOGGER << "BHM fit:";
-	
+
 	BHMparameters theParameters;
 	theParameters.dataPointsMin=dataPointsMin;
 	theParameters.splineOrder=splineOrder;
@@ -209,7 +211,7 @@ int Main(int argc, char **argv) {
 	theParameters.threshold=threshold;
 	theParameters.usableBinFraction=usableBinFraction;
 	theParameters.jumpSuppression=jumpSuppression;
-        
+
 	histogramBasis normalizedBinHistogram = binHistogram.normalizedHistogram(binHistogram.getNorm());
 	splineArray testBHMfit = normalizedBinHistogram.BHMfit(theParameters, binHistogram.getNumberOfSamples(), fail_if_zero);
 
@@ -218,16 +220,16 @@ int Main(int argc, char **argv) {
             if (fail_if_bad) return BAD_FIT;
         }
         if (print_fit) {
-            testBHMfit.printSplineArrayInfo(std::cout);
+            testBHMfit.printSplineArrayInfo(logstream);
         }
-        
+
 	testBHMfit.printSplines(outfile);
 
         // Should we dump the grid?
         if (grid_outfile) print_spline_grid(grid_outfile, testBHMfit, grid_points);
-        
+
 	return OK;
-	
+
 }
 
 int main(int argc, char** argv)
