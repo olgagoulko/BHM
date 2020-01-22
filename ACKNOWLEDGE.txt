@@ -1,9 +1,15 @@
 Whenever scientific publications result from projects using BHM, we kindly ask for a citation to the paper describing the method:
 
-O. Goulko, N. Prokof'ev, B. Svistunov, "Restoring a smooth function from its noisy integrals", arXiv:1707.07625
-https://arxiv.org/abs/1707.07625
+O. Goulko, N. Prokof'ev, B. Svistunov
+"Restoring a smooth function from its noisy integrals"
+Phys. Rev. E 97, 053305 (2018)
+https://doi.org/10.1103/PhysRevE.97.053305
+eprint arXiv:1707.07625
 
 and to the paper describing the code implementation:
 
-O. Goulko, A. Gaenko, E. Gull, N. Prokof'ev, B. Svistunov, "Implementation of the Bin Hierarchy Method for restoring a smooth function from a sampled histogram", arXiv:1711.04316
-https://arxiv.org/abs/1711.04316
+O. Goulko, A. Gaenko, E. Gull, N. Prokof'ev, B. Svistunov
+"Implementation of the Bin Hierarchy Method for restoring a smooth function from a sampled histogram", 
+Computer Physics Communications 236, 205-213 (2019)
+https://doi.org/10.1016/j.cpc.2018.09.019
+eprint arXiv:1711.04316
