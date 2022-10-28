@@ -17,10 +17,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301 USA.
 
 *** END OF LICENCE ***/
+
+/*** 
+
+This is an edited version of original BHM code so that it may function with 2-dimensional data. 
+Edits done in the Fall 2022 by Juan Pablo Varela.
+
+***/
+
 #ifndef SLOT_HPP
 #define SLOT_HPP
 
 #include "basic.hpp"
+#include <vector>
 
 class excessBin {
 
@@ -45,20 +54,27 @@ class slotBounds {
 	
 protected:
 	
-	double lowerBound;
-	double upperBound;
-	bool noUpperBound;
+	double lowerLeft; /// Lower-left corner of bin
+	double upperLeft; /// Upper-left corner of bin
+	double lowerRight;  /// Lower-right edge of bin
+	double upperRight; ///  Upper-right corner of bin 
+	///bool noUpperBound; /// not needed for 2D, or 1D really - more for basis projection 
 	
 public:
 	
-	slotBounds(double theLowerBound = 0.);
-	slotBounds(double theLowerBound, double theUpperBound);
+	slotBounds(double theLowerLeft = 0.);
+	slotBounds(double theLowerLeft, double theUpperLeft, double theLowerRight, double theUpperRight);
 	
-	bool operator==(const slotBounds& other) const { return ((lowerBound==other.lowerBound) && (noUpperBound==other.noUpperBound) && ( (upperBound==other.upperBound)||!noUpperBound) ); }
+	bool operator==(const slotBounds& other) const { return ((lowerLeft==other.lowerLeft) && 
+		(upperLeft==other.upperLeft) && (lowerRight == other.lowerRight) && (upperRight == other.upperRight)
+		); }
 	
-	double getLowerBound() const {return lowerBound;}
-	double getUpperBound() const {return upperBound;}
-	bool getIsInfinite() const {return noUpperBound;}
+	double getLowerLeft() const {return lowerLeft;}
+	double getLowerRight() const {return lowerLeft;}
+	double getUpperLeft() const {return UpperLeft;}
+	double getUpperRight() const {return UpperRight;}
+
+	//bool getIsInfinite() const {return noUpperBound;}
 	
 	bool checkIfInBounds(double valueToCheck) const;
 	bool overlapping(const slotBounds& compareBounds) const;
@@ -68,6 +84,7 @@ public:
 	
 };
 
+/// For basis projection method - don't need to modify for thesis
 class basisSlot {
 protected:
 	
@@ -87,7 +104,7 @@ public:
         /// Initialize empty slot
 	basisSlot(slotBounds theBounds, int theTotalNumOfBasisFn = 0);
         /// Initialize and pre-fill a slot without basis functions
-        basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance);
+    basisSlot(slotBounds theBounds, long nhits, double theIntegral, double theVariance);
 
 	virtual basisSlot* Clone() { return new basisSlot(*this);}
 	virtual ~basisSlot() {}
@@ -127,6 +144,9 @@ public:
 	
 }; 
 
+
+/// Both taylorSlot and sqrtSlot are child slots of basisSlot related to
+/// basis projection - don't need to care about
 class taylorSlot: public basisSlot {
 	
 private:
